@@ -1,19 +1,23 @@
-package org.example;
+package com.gravity9.mongocdc;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.client.*;
+import com.mongodb.client.ChangeStreamIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import com.mongodb.client.model.changestream.FullDocument;
+import java.util.List;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.conversions.Bson;
-
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +27,7 @@ import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 public class ChangeStreamListener implements Runnable {
 
-    private static Logger log = LoggerFactory.getLogger(ChangeStreamListener.class);
+    private static final Logger log = LoggerFactory.getLogger(ChangeStreamListener.class);
 
     private final String uri;
     private final String database;
@@ -42,6 +46,7 @@ public class ChangeStreamListener implements Runnable {
 
     @Override
     public void run() {
+        log.info("Starting worker for partition {} on collection '{}'", partition, collection);
         ConnectionString connectionString = new ConnectionString(uri);
         CodecRegistry pojoCodecRegistry = fromProviders(PojoCodecProvider.builder().automatic(true).build());
         CodecRegistry codecRegistry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(),
@@ -80,20 +85,31 @@ public class ChangeStreamListener implements Runnable {
                     Aggregates.match(
                             expr(eq(mod(divide(toLong(toDate())), partitionNumbers), partition))
                     )
-            ));
+            ))
+                .fullDocument(FullDocument.UPDATE_LOOKUP);
 
-            if (changeStreamConfig.getResumeToken() != null) {
-                watch.resumeAfter(new BsonDocument("_data", new BsonString(changeStreamConfig.getResumeToken())));
+            String resumeToken = changeStreamConfig.getResumeToken();
+            if (resumeToken != null) {
+                log.info("Resuming change stream with token: " + resumeToken);
+                watch.resumeAfter(new BsonDocument("_data", new BsonString(resumeToken)));
             }
 
             do {
                 try {
                     ChangeStreamDocument<Document> document = watch.cursor().tryNext();
                     if (document != null) {
-                        System.out.println("partition" + partition + " resumeToken" + document.getResumeToken());
-                        changeStreamConfig.setResumeToken(document.getResumeToken().getString("_data").getValue());
+                        BsonDocument resumeTokenDoc = document.getResumeToken();
+                        resumeToken = resumeTokenDoc.getString("_data").getValue();
+                        log.info("partition" + partition + " resumeToken" + resumeToken);
 
+                        switch (document.getOperationType()) {
+                            case UPDATE -> log.info("UPDATE changedFields: " + document.getUpdateDescription().getUpdatedFields().toJson());
+                            default -> log.info("{} document: {}", document.getOperationType().name(), document.getFullDocument().toJson());
+                        }
+
+                        changeStreamConfig.setResumeToken(resumeToken);
                         changeStreamConfig = changeStreamListenerConfig.findOneAndReplace(Filters.eq("_id", changeStreamConfig.getId()), changeStreamConfig);
+                        watch.resumeAfter(resumeTokenDoc);
                     }
                 } catch (Exception ex) {
                     log.error("Exception while processing change", ex);
