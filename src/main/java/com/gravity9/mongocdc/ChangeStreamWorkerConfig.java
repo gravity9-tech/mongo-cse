@@ -2,7 +2,8 @@ package com.gravity9.mongocdc;
 
 import org.bson.types.ObjectId;
 
-public class ChangeStreamConfig {
+public class ChangeStreamWorkerConfig {
+
     private ObjectId id;
     private String collection;
     private int partition;
@@ -39,6 +40,4 @@ public class ChangeStreamConfig {
     public void setResumeToken(String resumeToken) {
         this.resumeToken = resumeToken;
     }
-
-
 }
