@@ -1,6 +1,5 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocdc.listener;
 
-import com.gravity9.mongocdc.listener.ChangeStreamListener;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import java.util.ArrayList;
 import java.util.List;

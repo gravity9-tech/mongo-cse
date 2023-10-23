@@ -36,7 +36,7 @@ class MongoChangeStreamWorker implements Runnable {
 	private final int partitionNumbers;
 	private final int partition;
 
-	private final WorkerConfigManager configManager;
+	private final ConfigManager configManager;
 	private final Set<ChangeStreamListener> listeners;
 	private Thread thread = null;
 	private String resumeToken;
@@ -45,7 +45,7 @@ class MongoChangeStreamWorker implements Runnable {
 	MongoChangeStreamWorker(String uri,
 							String databaseName,
 							String listenedCollection,
-							WorkerConfigManager configManager,
+							ConfigManager configManager,
 							int partitionNumbers,
 							int partition) {
 		this.uri = uri;

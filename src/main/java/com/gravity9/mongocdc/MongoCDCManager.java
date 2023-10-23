@@ -15,28 +15,28 @@ public class MongoCDCManager {
 
 	private final String databaseName;
 
-	private final String collectionName;
+	private final ConfigManager configManager;
 
-	private final Integer partitions;
-
-	private final WorkerConfigManager configManager;
+	private final WorkerClusterConfig clusterConfig;
 
 	private final Map<Integer, MongoChangeStreamWorker> workers;
 
 	public MongoCDCManager(String connectionUri, String databaseName, String collectionName, Integer partitions) {
 		this.connectionUri = connectionUri;
 		this.databaseName = databaseName;
-		this.collectionName = collectionName;
-		this.partitions = partitions;
-		this.configManager = new WorkerConfigManager(connectionUri, databaseName);
+		this.configManager = new ConfigManager(connectionUri, databaseName);
+		configManager.verifyClusterConfig(collectionName, partitions);
+		this.clusterConfig = configManager.getOrInitClusterConfig(collectionName, partitions);
 		this.workers = createWorkers();
 	}
 
 	private Map<Integer, MongoChangeStreamWorker> createWorkers() {
+		var partitions = clusterConfig.getPartitions();
 		if (partitions < 1) {
 			throw new IllegalArgumentException("Cannot initialize with less than 1 partition!");
 		}
 
+		var collectionName = clusterConfig.getCollection();
 		Map<Integer, MongoChangeStreamWorker> workers = new HashMap<>();
 		log.info("Creating workers for {} partitions for collection {}", partitions, collectionName);
 		for (int partition = 0; partition < partitions; partition++) {
@@ -54,15 +54,15 @@ public class MongoCDCManager {
 	}
 
 	public void start() {
-		log.info("Starting all workers for collection {}", collectionName);
+		log.info("Starting all workers for collection {}", clusterConfig.getCollection());
 		workers.values().forEach(MongoChangeStreamWorker::start);
-		log.info("All workers for collection {} are now ready!", collectionName);
+		log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
 	}
 
 	public void stop() {
-		log.info("Starting all workers for collection {}", collectionName);
+		log.info("Starting all workers for collection {}", clusterConfig.getCollection());
 		workers.values().forEach(MongoChangeStreamWorker::stop);
-		log.info("All workers for collection {} are now ready!", collectionName);
+		log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
 	}
 
 	public void registerListener(ChangeStreamListener listener, Collection<Integer> partitions) {
