@@ -33,12 +33,12 @@ class MongoChangeStreamWorker implements Runnable {
 	private final String uri;
 	private final String databaseName;
 	private final String listenedCollection;
-	private final WorkerConfigManager configManager;
-
 	private final int partitionNumbers;
 	private final int partition;
 
+	private final WorkerConfigManager configManager;
 	private final Set<ChangeStreamListener> listeners;
+	private Thread thread = null;
 	private String resumeToken;
 	private ObjectId configId;
 
@@ -63,8 +63,15 @@ class MongoChangeStreamWorker implements Runnable {
 		this.resumeToken = changeStreamWorkerConfig.getResumeToken();
 		this.configId = changeStreamWorkerConfig.getId();
 
-		new Thread(this).start();
+		this.thread = new Thread(this);
+		this.thread.start();
 		log.info("Worker for partition {} on collection {} is now started!", partition, listenedCollection);
+	}
+
+	public void stop() {
+		this.thread.stop();
+		this.thread = null;
+		log.info("Worker for partition {} on collection {} stopped!", partition, listenedCollection);
 	}
 
 	@Override

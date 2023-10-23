@@ -59,6 +59,12 @@ public class MongoCDCManager {
 		log.info("All workers for collection {} are now ready!", collectionName);
 	}
 
+	public void stop() {
+		log.info("Starting all workers for collection {}", collectionName);
+		workers.values().forEach(MongoChangeStreamWorker::stop);
+		log.info("All workers for collection {} are now ready!", collectionName);
+	}
+
 	public void registerListener(ChangeStreamListener listener, Collection<Integer> partitions) {
 		partitions.forEach(partition -> {
 			MongoChangeStreamWorker worker = workers.get(partition);
