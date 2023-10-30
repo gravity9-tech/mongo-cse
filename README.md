@@ -19,8 +19,32 @@ It's a `$match` aggregation:
 In order to use this library you need to do 2 things:
 
 1. Create the MongoCDCManager
-2. Create and register your listeners
-3. Start listening to events
+2. Create and register your listeners by implementing the `ChangeStreamListener` interface
+3. Start the workers and begin listening to events
+
+For this example, I've created 2 listeners that I want to use `MyChangeStreamListener` and `MetricsChangeStreamListener`:
+
+```java
+public class MyChangeStreamListener implements ChangeStreamListener {
+	@Override
+	public void handle(ChangeStreamDocument<Document> event) {
+		log.info("I've received an event! {}", event);
+	}
+}
+```
+
+```java
+public class MetricsChangeStreamListener implements ChangeStreamListener {
+	@Override
+	public void handle(ChangeStreamDocument<Document> event) {
+		logEventMetrics(event);
+	}
+}
+```
+
+Now, to configure the manager and register my listeners. I want to register `myListener` only for partitions 0 and 1, but I want `metricsListener` to handle events from all partitions.
+
+Note that both listeners will receive all events from partitions 0 and 1, while `metricsListener` will also receive all events from partition 2. You can register as many listeners to each and every partition as you'd like. Partitions don't have to have any listeners assigned to them but the events will still be consumed by the worker and the resumeToken will be updated for that partition.
 
 ```java
 // Create manager and configs
@@ -33,12 +57,14 @@ manager.registerListener(myListener, List.of(0, 1));
 // Create a generic listener registered to all partitions
 MetricsChangeStreamListener metricsListener = new MetricsChangeStreamListener();
 manager.registerListenerToAllPartitions(metricsListener);
+```
 
+Finally, I want to start listening to events. This call will start the worker threads, read the resumeTokens from the configs (if available) and start consuming events. 
+
+```java
 // Start listening to events
 manager.start();
 ```
-
-You can register as many listeners to each and every partition as you'd like.
 
 ## Cosiderations
 
@@ -49,8 +75,18 @@ MCSE works on the basis of configs. When used, it will create 2 collections in y
 * Storing the worker's collection name, partition and resumeToken 
 * Making sure the number of partitions is maintained. If you need to re-partition the change streams - they will need to start over from the beginning of the change stream. You can modify the configs manually in those collections but it is not advised.
 
+This means that the MongoDB user needs to be able to create collections (or write to those collections if you create them manually). 
+
 ### Distributed environments
 
 As of version 1.0.0 it is not yet possible to spread partitions across multiple JVMs. However, such a feature is planned for future releases.
 
-Version 1.0.0 enables you, however, to handle change streams from different collections on different JVMs.
+Version 1.0.0 enables you, however, to handle change streams from different collections on different JVMs as MongoCDCManager's created for different collections are completely independent.
+
+### MongoDB versions
+
+This library was tested with the following MongoDB versions but should be working with all higher ones too:
+
+* 4.4
+
+We will try and expand the list with tests on other versions in the future.

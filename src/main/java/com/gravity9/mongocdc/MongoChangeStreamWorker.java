@@ -95,12 +95,9 @@ class MongoChangeStreamWorker implements Runnable {
 		}
 
 		do {
-			try {
-				ChangeStreamDocument<Document> document = watch.cursor().tryNext();
+			try (var cursor = watch.cursor()) {
+				ChangeStreamDocument<Document> document = cursor.tryNext();
 				if (document != null) {
-					BsonDocument resumeTokenDoc = document.getResumeToken();
-					resumeToken = resumeTokenDoc.getString("_data").getValue();
-
 					switch (document.getOperationType()) {
 						case UPDATE ->
 							log.info("UPDATE changedFields: " + document.getUpdateDescription().getUpdatedFields().toJson());
@@ -109,13 +106,16 @@ class MongoChangeStreamWorker implements Runnable {
 					}
 
 					listeners.forEach(listener -> listener.handle(document));
-
-					log.info("Updating resume token for partition " + partition + ", resumeToken: " + resumeToken);
-					configManager.updateResumeToken(configId, resumeToken);
-					watch.resumeAfter(resumeTokenDoc);
 				} else {
 					log.trace("No new updates found on partition {} for collection {}", partition, listenedCollection);
 				}
+
+				// Read resumeToken even with no new results to make sure the token does not expire
+				BsonDocument resumeTokenDoc = cursor.getResumeToken();
+				resumeToken = resumeTokenDoc.getString("_data").getValue();
+				log.info("Updating resume token for partition " + partition + ", resumeToken: " + resumeToken);
+				configManager.updateResumeToken(configId, resumeToken);
+				watch.resumeAfter(resumeTokenDoc);
 			} catch (Exception ex) {
 				log.error("Exception while processing change", ex);
 			}
