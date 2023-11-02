@@ -1,3 +1,5 @@
+[![Pipeline][GitHub Acitons badge]][GitHub Acitons link]
+
 ## What is MCSE (Mongo Change Stream Enhancer)?
 
 This is a lightweight library that allows Java developers to scale their usage of [MongoDB Change Streams](https://www.mongodb.com/docs/manual/changeStreams/). 
@@ -90,3 +92,7 @@ This library was tested with the following MongoDB versions but should be workin
 * 4.4
 
 We will try and expand the list with tests on other versions in the future.
+
+[GitHub Acitons badge]: https://github.com/gravity9-tech/mongocdc/actions/workflows/maven.yml/badge.svg?branch=main
+
+[GitHub Acitons link]: https://github.com/gravity9-tech/mongocdc/actions/workflows/maven.yml
