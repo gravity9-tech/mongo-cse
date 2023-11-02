@@ -31,3 +31,18 @@ jobs:
       run: mvn -B package --file pom.xml
     - name: Run checks
       run: mvn verify
+    - name: Archive jar
+      uses: actions/upload-artifact@v3
+      with:
+        name: mcse-jar
+        path: target/*.jar
+    - name: Archive pmd
+      uses: actions/upload-artifact@v3
+      with:
+        name: pmd-report
+        path: target/site/pmd.html
+    - name: Archive dependency check
+      uses: actions/upload-artifact@v3
+      with:
+        name: dependency-check-report
+        path: target/dependency-check-report.html
