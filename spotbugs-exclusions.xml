@@ -1,0 +1,9 @@
+<FindBugsFilter>
+    <!--  This rule is overly aggressive, marking classes which are in fact immutable, as mutable  -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+</FindBugsFilter>

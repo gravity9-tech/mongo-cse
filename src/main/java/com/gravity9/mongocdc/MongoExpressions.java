@@ -6,6 +6,8 @@ import org.bson.conversions.Bson;
 
 class MongoExpressions {
 
+	private static final Integer TO_MILLIS = 1000;
+
 	static Bson expr(Bson expr) {
 		return new Document("$expr", expr);
 	}
@@ -19,7 +21,7 @@ class MongoExpressions {
 	}
 
 	static Bson divide(Bson expr) {
-		return new Document("$divide", List.of(expr, 1000));
+		return new Document("$divide", List.of(expr, TO_MILLIS));
 	}
 
 	static Bson toLong(Bson expr) {
