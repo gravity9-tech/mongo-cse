@@ -93,6 +93,24 @@ This library was tested with the following MongoDB versions but should be workin
 
 We will try and expand the list with tests on other versions in the future.
 
+## Running tests locally
+
+### Setting up local MongoDB replica set
+
+In order for the replica set to properly advertise it's node's addresses you should add the following mapping in your /etc/hosts file:
+
+```
+127.0.0.1       mongo1
+127.0.0.1       mongo2
+127.0.0.1       mongo3
+```
+
+After that, run `sh startReplicaSetEnvironment.sh` and wait for the replica set to start.
+
+### Running tests
+
+To run tests, simply run `mvn test` 
+
 [GitHub Acitons badge]: https://github.com/gravity9-tech/mongocdc/actions/workflows/maven.yml/badge.svg?branch=main
 
 [GitHub Acitons link]: https://github.com/gravity9-tech/mongocdc/actions/workflows/maven.yml
