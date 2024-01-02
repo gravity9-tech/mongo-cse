@@ -8,26 +8,31 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.FullDocument;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static com.gravity9.mongocdc.MongoExpressions.divide;
 import static com.gravity9.mongocdc.MongoExpressions.eq;
 import static com.gravity9.mongocdc.MongoExpressions.expr;
 import static com.gravity9.mongocdc.MongoExpressions.mod;
-import static com.gravity9.mongocdc.MongoExpressions.toDate;
+import static com.gravity9.mongocdc.MongoExpressions.or;
+import static com.gravity9.mongocdc.MongoExpressions.toDateDocumentKey;
+import static com.gravity9.mongocdc.MongoExpressions.toDateFullDocumentId;
 import static com.gravity9.mongocdc.MongoExpressions.toLong;
 
 
 class MongoChangeStreamWorker implements Runnable {
 
+	private static final String NULL_STRING = "null";
 	private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
 
 	private final String uri;
@@ -82,7 +87,11 @@ class MongoChangeStreamWorker implements Runnable {
 
 		ChangeStreamIterable<Document> watch = collection.watch(List.of(
 				Aggregates.match(
-					expr(eq(mod(divide(toLong(toDate())), partitionNumbers), partition))
+					or(List.of(
+							partitionMatchExpression(toDateFullDocumentId(), partitionNumbers, partition),
+							partitionMatchExpression(toDateDocumentKey(), partitionNumbers, partition)
+					))
+
 				)
 			))
 			.fullDocument(FullDocument.UPDATE_LOOKUP);
@@ -100,9 +109,11 @@ class MongoChangeStreamWorker implements Runnable {
 				if (document != null) {
 					switch (document.getOperationType()) {
 						case UPDATE ->
-							log.info("UPDATE changedFields: " + document.getUpdateDescription().getUpdatedFields().toJson());
+							log.info("UPDATE changedFields: {}", document.getUpdateDescription() == null ? NULL_STRING : toJson(document.getUpdateDescription().getUpdatedFields()));
+						case DELETE ->
+							log.info("DELETE, document key: {}", toJson(document.getDocumentKey()));
 						default ->
-							log.info("{} document: {}", document.getOperationType().name(), document.getFullDocument().toJson());
+							log.info("{} document: {}", document.getOperationType().name(), toJson(document.getFullDocument()));
 					}
 
 					listeners.forEach(listener -> listener.handle(document));
@@ -126,4 +137,17 @@ class MongoChangeStreamWorker implements Runnable {
 		log.info("Registering listener {} to worker on partition {} for collection {}", listener.getClass().getName(), partition, listenedCollection);
 		listeners.add(listener);
 	}
+
+	private String toJson(BsonDocument document) {
+		return document == null ? NULL_STRING : document.toJson();
+	}
+
+	private String toJson(Document document) {
+		return document == null ? NULL_STRING : document.toJson();
+	}
+
+	private Bson partitionMatchExpression(Bson documentId, int partitionNumbers, int partitionNo) {
+		return expr(eq(mod(divide(toLong(documentId)), partitionNumbers), partitionNo));
+	}
+
 }
