@@ -12,6 +12,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ConfigManagerTest {
 
+	private MongoConfig.MongoConfigBuilder mongoConfigBuilder = new MongoConfig.MongoConfigBuilder()
+			.connectionUri("mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=dbrs&retryWrites=true&w=majority")
+			.databaseName("test-db")
+			.collectionName("example")
+			.workerConfigCollectionName("changeStreamWorkerConfig")
+			.clusterConfigCollectionName("changeStreamClusterConfig");
+
 	@AfterEach
 	void cleanUp() {
 		TestMongoUtils.cleanUp();
@@ -20,17 +27,26 @@ public class ConfigManagerTest {
 	@Test
 	void givenSameConfiguration_shouldNotThrowException() {
 		int partitions = 3;
-		new MongoCDCManager(CONN_URI, DB_NAME, COLL_NAME, partitions);
-		assertDoesNotThrow(() -> new MongoCDCManager(CONN_URI, DB_NAME, COLL_NAME, partitions));
+		var mongoConfig = mongoConfigBuilder
+				.partitions(partitions)
+				.build();
+		new MongoCDCManager(mongoConfig);
+		assertDoesNotThrow(() -> new MongoCDCManager(mongoConfig));
 
-		WorkerClusterConfig config = new ConfigManager(CONN_URI, DB_NAME).getOrInitClusterConfig(COLL_NAME, partitions);
+		WorkerClusterConfig config = new ConfigManager(mongoConfig).getOrInitClusterConfig(COLL_NAME, partitions);
 		assertEquals(COLL_NAME, config.getCollection());
 		assertEquals(partitions, config.getPartitions());
 	}
 
 	@Test
 	void givenNewConfigWithDifferentNumberOfPartitions_shouldThrowException() {
-		new MongoCDCManager(CONN_URI, DB_NAME, COLL_NAME, 3);
-		assertThrows(IllegalArgumentException.class, () -> new MongoCDCManager(CONN_URI, DB_NAME, COLL_NAME, 1));
+		var firstConfig = mongoConfigBuilder
+				.partitions(3)
+				.build();
+		var secondConfig = mongoConfigBuilder
+				.partitions(1)
+				.build();
+		new MongoCDCManager(firstConfig);
+		assertThrows(IllegalArgumentException.class, () -> new MongoCDCManager(secondConfig));
 	}
 }

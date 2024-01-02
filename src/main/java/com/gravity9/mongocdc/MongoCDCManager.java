@@ -11,22 +11,19 @@ public class MongoCDCManager {
 
 	private static final Logger log = LoggerFactory.getLogger(MongoCDCManager.class);
 
-	private final String connectionUri;
-
-	private final String databaseName;
-
 	private final ConfigManager configManager;
+
+	private final MongoConfig mongoConfig;
 
 	private final WorkerClusterConfig clusterConfig;
 
 	private final Map<Integer, MongoChangeStreamWorker> workers;
 
-	public MongoCDCManager(String connectionUri, String databaseName, String collectionName, Integer partitions) {
-		this.connectionUri = connectionUri;
-		this.databaseName = databaseName;
-		this.configManager = new ConfigManager(connectionUri, databaseName);
-		configManager.verifyClusterConfig(collectionName, partitions);
-		this.clusterConfig = configManager.getOrInitClusterConfig(collectionName, partitions);
+	public MongoCDCManager(MongoConfig mongoConfig) {
+		this.mongoConfig = mongoConfig;
+		this.configManager = new ConfigManager(mongoConfig);
+		configManager.verifyClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getPartitions());
+		this.clusterConfig = configManager.getOrInitClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getPartitions());
 		this.workers = createWorkers();
 	}
 
@@ -41,11 +38,8 @@ public class MongoCDCManager {
 		log.info("Creating workers for {} partitions for collection {}", partitions, collectionName);
 		for (int partition = 0; partition < partitions; partition++) {
 			workers.put(partition, new MongoChangeStreamWorker(
-				connectionUri,
-				databaseName,
-				collectionName,
+				mongoConfig,
 				configManager,
-				partitions,
 				partition
 			));
 		}

@@ -20,9 +20,10 @@ It's a `$match` aggregation:
 
 In order to use this library you need to do 2 things:
 
-1. Create the MongoCDCManager
-2. Create and register your listeners by implementing the `ChangeStreamListener` interface
-3. Start the workers and begin listening to events
+1. Create MongoConfig
+2. Create the MongoCDCManager
+3. Create and register your listeners by implementing the `ChangeStreamListener` interface
+4. Start the workers and begin listening to events
 
 For this example, I've created 2 listeners that I want to use `MyChangeStreamListener` and `MetricsChangeStreamListener`:
 
@@ -49,6 +50,19 @@ Now, to configure the manager and register my listeners. I want to register `myL
 Note that both listeners will receive all events from partitions 0 and 1, while `metricsListener` will also receive all events from partition 2. You can register as many listeners to each and every partition as you'd like. Partitions don't have to have any listeners assigned to them but the events will still be consumed by the worker and the resumeToken will be updated for that partition.
 
 ```java
+// Create MongoConfig
+MongoConfig mongoConfig = new MongoConfig.MongoConfigBuilder()
+		.connectionUri("mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=dbrs&retryWrites=true&w=majority")
+		.databaseName("test-db")
+		.collectionName("example")
+		.partitions(3)
+		.workerConfigCollectionName("changeStreamWorkerConfig")
+		.clusterConfigCollectionName("changeStreamClusterConfig")
+		.fullDocument(FullDocument.UPDATE_LOOKUP)
+		.fullDocumentBeforeChange(FullDocumentBeforeChange.DEFAULT)
+		.maxAwaitTimeInMs(1000)
+		.build();
+
 // Create manager and configs
 MongoCDCManager manager = new MongoCDCManager(URI, DB_NAME, COLL_NAME, 3);
 
@@ -68,11 +82,26 @@ Finally, I want to start listening to events. This call will start the worker th
 manager.start();
 ```
 
+### MongoConfig configuration
+
+* `connectionUri` - MongoDB URI
+* `databaseName` - name of the database
+* `collectionName` - name of the collection on which change stream listener should be applied
+* `partitions` - how many partitions should be used (how many parallel listeners can be run)
+* `workerConfigCollectionName` - collection name in which worker config is stored
+* `clusterConfigCollectionName` - collection name in which cluster config is stored
+* `fullDocument` - by default set to `FullDocument.UPDATE_LOOKUP` to return the latest version of the document.
+* `fullDocumentBeforeChange` - by default set to `FullDocumentBeforeChange.OFF`. It is used to return version of the document before applying the change.
+* `maxAwaitTimeMS` - by default set to 1000 ms. The maximum amount of time in milliseconds the server waits for new data changes to report to the change stream cursor before returning an empty batch.
+
+
+For more info about `fullDocument`, `fullDocumentBeforeChange` and `maxAwaitTime` see https://www.mongodb.com/docs/manual/reference/method/db.collection.watch/
+
 ## Cosiderations
 
 ### Configs
 
-MCSE works on the basis of configs. When used, it will create 2 collections in your MongoDB database: `changeStreamWorkerConfig` and `changeStreamClusterConfig`. They are used for:
+MCSE works on the basis of configs. When used, it will create 2 collections in your MongoDB database: `changeStreamWorkerConfig` and `changeStreamClusterConfig`. Names of these collections can be changed (see [MongoConfig configuration](#mongoconfig-configuration)). They are used for:
 
 * Storing the worker's collection name, partition and resumeToken 
 * Making sure the number of partitions is maintained. If you need to re-partition the change streams - they will need to start over from the beginning of the change stream. You can modify the configs manually in those collections but it is not advised.

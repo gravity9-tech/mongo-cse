@@ -3,6 +3,7 @@ package com.gravity9.mongocdc;
 import com.gravity9.mongocdc.constants.TestIds;
 import com.gravity9.mongocdc.listener.TestChangeStreamListener;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.OperationType;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ChangeStreamTest {
 
+	private MongoConfig mongoConfig = new MongoConfig.MongoConfigBuilder()
+			.connectionUri(CONN_URI)
+			.databaseName(DB_NAME)
+			.collectionName(COLL_NAME)
+			.workerConfigCollectionName("changeStreamWorkerConfig")
+			.clusterConfigCollectionName("changeStreamClusterConfig")
+			.partitions(3)
+			.fullDocument(FullDocument.UPDATE_LOOKUP)
+			.build();
+
 	@AfterEach
 	void cleanUp() {
 		TestMongoUtils.cleanUp();
@@ -25,20 +36,21 @@ public class ChangeStreamTest {
 
 	@Test
 	void givenProperConfiguration_shouldStartManagerAndRegisterListener() throws Exception {
-		int partitionNumbers = 3;
-
-		MongoCDCManager manager = new MongoCDCManager(CONN_URI, DB_NAME, COLL_NAME, partitionNumbers);
+		MongoCDCManager manager = new MongoCDCManager(mongoConfig);
 
 		TestChangeStreamListener listener = new TestChangeStreamListener();
 		manager.registerListenerToAllPartitions(listener);
 		manager.start();
+
+		// Wait for manager to start
+		Thread.sleep(1000);
 
 		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
 		Document testDoc = new Document("testValue", 123);
 		collection.insertOne(testDoc);
 
 		// Wait for CDC event to arrive
-		Thread.sleep(500);
+		Thread.sleep(1000);
 
 		List<ChangeStreamDocument<Document>> events = listener.getEvents();
 		assertEquals(1, events.size());
@@ -48,9 +60,7 @@ public class ChangeStreamTest {
 
 	@Test
 	void givenMultipleListeners_eachShouldReceiveSeparateEvents() throws Exception {
-		int partitionNumbers = 3;
-
-		MongoCDCManager manager = new MongoCDCManager(CONN_URI, DB_NAME, COLL_NAME, partitionNumbers);
+		MongoCDCManager manager = new MongoCDCManager(mongoConfig);
 
 		TestChangeStreamListener listener0 = new TestChangeStreamListener();
 		TestChangeStreamListener listener1 = new TestChangeStreamListener();
