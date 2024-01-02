@@ -88,8 +88,8 @@ manager.start();
 * `databaseName` - name of the database
 * `collectionName` - name of the collection on which change stream listener should be applied
 * `partitions` - how many partitions should be used (how many parallel listeners can be run)
-* `workerConfigCollectionName` - collection name in which worker config is stored
-* `clusterConfigCollectionName` - collection name in which cluster config is stored
+* `workerConfigCollectionName` - by default set to `changeStreamWorkerConfig`. Collection name in which worker config is stored
+* `clusterConfigCollectionName` - by default set to `changeStreamClusterConfig`. collection name in which cluster config is stored
 * `fullDocument` - by default set to `FullDocument.UPDATE_LOOKUP` to return the latest version of the document.
 * `fullDocumentBeforeChange` - by default set to `FullDocumentBeforeChange.OFF`. It is used to return version of the document before applying the change.
 * `maxAwaitTimeMS` - by default set to 1000 ms. The maximum amount of time in milliseconds the server waits for new data changes to report to the change stream cursor before returning an empty batch.

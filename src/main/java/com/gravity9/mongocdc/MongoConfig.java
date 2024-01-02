@@ -81,9 +81,9 @@ public class MongoConfig {
 
 		private int partitions;
 
-		private String workerConfigCollectionName;
+		private String workerConfigCollectionName = "changeStreamWorkerConfig";
 
-		private String clusterConfigCollectionName;
+		private String clusterConfigCollectionName = "changeStreamClusterConfig";
 
 		private FullDocument fullDocument = FullDocument.UPDATE_LOOKUP;
 
