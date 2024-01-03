@@ -75,7 +75,7 @@ class MongoChangeStreamWorker implements Runnable {
 
 		ChangeStreamIterable<Document> watch = collection.watch(List.of(
 				Aggregates.match(
-					expr(eq(mod(divide(toLong(toDate())), mongoConfig.getPartitions()), partition))
+					expr(eq(mod(divide(toLong(toDate())), mongoConfig.getNumberOfPartitions()), partition))
 				)
 			))
 			.fullDocument(mongoConfig.getFullDocument())

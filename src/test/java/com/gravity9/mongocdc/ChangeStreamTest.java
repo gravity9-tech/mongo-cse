@@ -25,7 +25,7 @@ public class ChangeStreamTest {
 			.collectionName(COLL_NAME)
 			.workerConfigCollectionName("changeStreamWorkerConfig")
 			.clusterConfigCollectionName("changeStreamClusterConfig")
-			.partitions(3)
+			.numberOfPartitions(3)
 			.fullDocument(FullDocument.UPDATE_LOOKUP)
 			.build();
 
