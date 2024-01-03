@@ -113,13 +113,17 @@ class MongoChangeStreamWorker implements Runnable {
 
                     switch (document.getOperationType()) {
                         case UPDATE:
-                            log.info("UPDATE, document id: {}, changedFields: {}", changedDocumentId, document.getUpdateDescription() == null ? NULL_STRING : toJson(document.getUpdateDescription().getUpdatedFields()));
+                            if (canLogSensitiveData()) {
+                                log.debug("UPDATE, document id: {}, changedFields: {}", changedDocumentId, document.getUpdateDescription() == null ? NULL_STRING : toJson(document.getUpdateDescription().getUpdatedFields()));
+                            } else {
+                                log.info("UPDATE, document id: {}", changedDocumentId);
+                            }
                             break;
                         case DELETE:
                             log.info("DELETE, document id: {}", changedDocumentId);
                             break;
                         default:
-                            if (log.isDebugEnabled()) {
+                            if (canLogSensitiveData()) {
 								log.debug("{} document: {}", document.getOperationType().name(), toJson(document.getFullDocument()));
                             } else {
 						  		log.info("{} document id: {}", document.getOperationType().name(), changedDocumentId);
@@ -146,6 +150,10 @@ class MongoChangeStreamWorker implements Runnable {
     void register(ChangeStreamListener listener) {
         log.info("Registering listener {} to worker on partition {} for collection {}", listener.getClass().getName(), partition, listenedCollection);
         listeners.add(listener);
+    }
+
+    private static boolean canLogSensitiveData() {
+        return log.isDebugEnabled();
     }
 
     private Optional<ObjectId> getChangedDocumentId(ChangeStreamDocument<Document> document) {
