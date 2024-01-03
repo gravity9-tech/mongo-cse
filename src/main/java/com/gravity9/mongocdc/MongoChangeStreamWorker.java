@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 import static com.gravity9.mongocdc.MongoExpressions.divide;
 import static com.gravity9.mongocdc.MongoExpressions.eq;
@@ -44,6 +45,7 @@ class MongoChangeStreamWorker implements Runnable {
     private Thread thread = null;
     private String resumeToken;
     private ObjectId configId;
+    private CountDownLatch initializationLatch;
 
     MongoChangeStreamWorker(MongoConfig mongoConfig,
                             ConfigManager configManager,
@@ -52,6 +54,7 @@ class MongoChangeStreamWorker implements Runnable {
         this.configManager = configManager;
         this.partition = partition;
         this.listeners = new HashSet<>();
+        this.initializationLatch = new CountDownLatch(1);
     }
 
     public void start() {
@@ -69,6 +72,14 @@ class MongoChangeStreamWorker implements Runnable {
         this.thread.stop();
         this.thread = null;
         log.info("Worker for partition {} on collection {} stopped!", partition, mongoConfig.getCollectionName());
+    }
+
+    public void awaitInitialization() {
+        try {
+            initializationLatch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -96,8 +107,14 @@ class MongoChangeStreamWorker implements Runnable {
             log.info("No resume token found for partition {} on collection {}, starting fresh", partition, mongoConfig.getCollectionName());
         }
 
+        boolean firstCursorOpen = true;
         do {
             try (var cursor = watch.cursor()) {
+                if (firstCursorOpen) {
+                    firstCursorOpen = false;
+                    initializationLatch.countDown();
+                }
+
                 ChangeStreamDocument<Document> document = cursor.tryNext();
                 if (document != null) {
                     Optional<String> changedDocumentIdOpt = getChangedDocumentId(document).map(ObjectId::toHexString);

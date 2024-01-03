@@ -1,11 +1,12 @@
 package com.gravity9.mongocdc;
 
 import com.gravity9.mongocdc.listener.ChangeStreamListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MongoCDCManager {
 
@@ -50,6 +51,7 @@ public class MongoCDCManager {
 	public void start() {
 		log.info("Starting all workers for collection {}", clusterConfig.getCollection());
 		workers.values().forEach(MongoChangeStreamWorker::start);
+		workers.values().forEach(MongoChangeStreamWorker::awaitInitialization);
 		log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
 	}
 
