@@ -4,43 +4,59 @@ import com.gravity9.mongocdc.constants.TestIds;
 import com.gravity9.mongocdc.listener.TestChangeStreamListener;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.OperationType;
-import java.util.List;
-import java.util.Map;
+import com.mongodb.client.result.InsertOneResult;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static com.gravity9.mongocdc.constants.TestConstants.COLL_NAME;
-import static com.gravity9.mongocdc.constants.TestConstants.CONN_URI;
-import static com.gravity9.mongocdc.constants.TestConstants.DB_NAME;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ChangeStreamTest {
+public class ChangeStreamTest extends AbstractMongoDbBase {
+
+	private static final Logger log = LoggerFactory.getLogger(ChangeStreamTest.class);
+
+	@BeforeEach
+	public void setup() {
+		super.setup();
+	}
 
 	@AfterEach
-	void cleanUp() {
-		TestMongoUtils.cleanUp();
+	public void tearDown() {
+		super.cleanUp();
 	}
 
 	@Test
 	void givenProperConfiguration_shouldStartManagerAndRegisterListener() throws Exception {
 		int partitionNumbers = 3;
 
-		MongoCDCManager manager = new MongoCDCManager(CONN_URI, DB_NAME, COLL_NAME, partitionNumbers);
+		MongoCDCManager manager = new MongoCDCManager(getConnectionUri(), getDatabaseName(), getTestCollectionName(), partitionNumbers);
 
 		TestChangeStreamListener listener = new TestChangeStreamListener();
 		manager.registerListenerToAllPartitions(listener);
 		manager.start();
 
-		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
+		var collection = MongoClientProvider.createClient(getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
 		Document testDoc = new Document("testValue", 123);
-		collection.insertOne(testDoc);
+		InsertOneResult insertOneResult = collection.insertOne(testDoc);
+		log.info("Inserted document: {}", insertOneResult.getInsertedId());
 
-		// Wait for CDC event to arrive
-		Thread.sleep(500);
+		List<ChangeStreamDocument<Document>> events;
+		int testNo = 1;
 
-		List<ChangeStreamDocument<Document>> events = listener.getEvents();
+		do {
+			// Wait for CDC event to arrive
+			Thread.sleep(500);
+			events = listener.getEvents();
+			testNo++;
+		} while(events.isEmpty() && testNo < 10);
+
 		assertEquals(1, events.size());
 		assertEquals(OperationType.INSERT, events.get(0).getOperationType());
 		assertEquals(123, events.get(0).getFullDocument().getInteger("testValue"));
@@ -50,7 +66,7 @@ public class ChangeStreamTest {
 	void givenMultipleListeners_eachShouldReceiveSeparateEvents() throws Exception {
 		int partitionNumbers = 3;
 
-		MongoCDCManager manager = new MongoCDCManager(CONN_URI, DB_NAME, COLL_NAME, partitionNumbers);
+		MongoCDCManager manager = new MongoCDCManager(getConnectionUri(), getDatabaseName(), getTestCollectionName(), partitionNumbers);
 
 		TestChangeStreamListener listener0 = new TestChangeStreamListener();
 		TestChangeStreamListener listener1 = new TestChangeStreamListener();
@@ -60,7 +76,10 @@ public class ChangeStreamTest {
 		manager.registerListener(listener2, List.of(2));
 		manager.start();
 
-		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
+		var collection = MongoClientProvider.createClient(
+				getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName()
+		);
+
 		Document testDoc0 = new Document(Map.of(
 			"_id", new ObjectId(TestIds.MOD_0_ID),
 			"testValue", 0
