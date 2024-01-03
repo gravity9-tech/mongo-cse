@@ -15,37 +15,48 @@ import java.util.Set;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static com.gravity9.mongocdc.MongoExpressions.divide;
 import static com.gravity9.mongocdc.MongoExpressions.eq;
 import static com.gravity9.mongocdc.MongoExpressions.expr;
 import static com.gravity9.mongocdc.MongoExpressions.mod;
-import static com.gravity9.mongocdc.MongoExpressions.toDate;
+import static com.gravity9.mongocdc.MongoExpressions.or;
+import static com.gravity9.mongocdc.MongoExpressions.toDateDocumentKey;
+import static com.gravity9.mongocdc.MongoExpressions.toDateFullDocumentId;
 import static com.gravity9.mongocdc.MongoExpressions.toLong;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
 class MongoChangeStreamWorker implements Runnable {
 
-	private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
+    private static final String NULL_STRING = "null";
+    private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
 
 	private final MongoConfig mongoConfig;
+	private final int partitionNumbers;
 	private final int partition;
 
-	private final ConfigManager configManager;
-	private final Set<ChangeStreamListener> listeners;
-	private Thread thread = null;
-	private String resumeToken;
-	private ObjectId configId;
+    private final ConfigManager configManager;
+    private final Set<ChangeStreamListener> listeners;
+    private Thread thread = null;
+    private String resumeToken;
+    private ObjectId configId;
 
 	MongoChangeStreamWorker(MongoConfig mongoConfig,
 							ConfigManager configManager,
 							int partition) {
 		this.mongoConfig = mongoConfig;
 		this.configManager = configManager;
+		this.partitionNumbers = mongoConfig.getNumberOfPartitions()
 		this.partition = partition;
 		this.listeners = new HashSet<>();
 	}
@@ -56,16 +67,16 @@ class MongoChangeStreamWorker implements Runnable {
 		this.resumeToken = changeStreamWorkerConfig.getResumeToken();
 		this.configId = changeStreamWorkerConfig.getId();
 
-		this.thread = new Thread(this);
-		this.thread.start();
-		log.info("Worker for partition {} on collection {} is now started!", partition, mongoConfig.getCollectionName());
-	}
+        this.thread = new Thread(this);
+        this.thread.start();
+        log.info("Worker for partition {} on collection {} is now started!", partition, listenedCollection);
+    }
 
-	public void stop() {
-		this.thread.stop();
-		this.thread = null;
-		log.info("Worker for partition {} on collection {} stopped!", partition, mongoConfig.getCollectionName());
-	}
+    public void stop() {
+        this.thread.stop();
+        this.thread = null;
+        log.info("Worker for partition {} on collection {} stopped!", partition, listenedCollection);
+    }
 
 	@Override
 	public void run() {
@@ -75,7 +86,10 @@ class MongoChangeStreamWorker implements Runnable {
 
 		ChangeStreamIterable<Document> watch = collection.watch(List.of(
 				Aggregates.match(
-					expr(eq(mod(divide(toLong(toDate())), mongoConfig.getNumberOfPartitions()), partition))
+						or(List.of(
+								partitionMatchExpression(toDateFullDocumentId(), partitionNumbers, partition),
+								partitionMatchExpression(toDateDocumentKey(), partitionNumbers, partition)
+						))
 				)
 			))
 			.fullDocument(mongoConfig.getFullDocument())
@@ -89,36 +103,82 @@ class MongoChangeStreamWorker implements Runnable {
 			log.info("No resume token found for partition {} on collection {}, starting fresh", partition, mongoConfig.getCollectionName());
 		}
 
-		do {
-			try (var cursor = watch.cursor()) {
-				ChangeStreamDocument<Document> document = cursor.tryNext();
-				if (document != null) {
-					switch (document.getOperationType()) {
-						case UPDATE ->
-							log.info("UPDATE changedFields: " + document.getUpdateDescription().getUpdatedFields().toJson());
-						default ->
-							log.info("{} document: {}", document.getOperationType().name(), document.getFullDocument().toJson());
-					}
+        do {
+            try (var cursor = watch.cursor()) {
+                ChangeStreamDocument<Document> document = cursor.tryNext();
+                if (document != null) {
+                    Optional<String> changedDocumentIdOpt = getChangedDocumentId(document).map(ObjectId::toHexString);
+                    String changedDocumentId = changedDocumentIdOpt.orElse("?");
+
+                    switch (document.getOperationType()) {
+                        case UPDATE:
+                            if (canLogSensitiveData()) {
+                                log.debug("UPDATE, document id: {}, changedFields: {}", changedDocumentId, document.getUpdateDescription() == null ? NULL_STRING : toJson(document.getUpdateDescription().getUpdatedFields()));
+                            } else {
+                                log.info("UPDATE, document id: {}", changedDocumentId);
+                            }
+                            break;
+                        case DELETE:
+                            log.info("DELETE, document id: {}", changedDocumentId);
+                            break;
+                        default:
+                            if (canLogSensitiveData()) {
+								log.debug("{} document: {}", document.getOperationType().name(), toJson(document.getFullDocument()));
+                            } else {
+						  		log.info("{} document id: {}", document.getOperationType().name(), changedDocumentId);
+                            }
+                    }
 
 					listeners.forEach(listener -> listener.handle(document));
 				} else {
 					log.trace("No new updates found on partition {} for collection {}", partition, mongoConfig.getCollectionName());
 				}
 
-				// Read resumeToken even with no new results to make sure the token does not expire
-				BsonDocument resumeTokenDoc = cursor.getResumeToken();
-				resumeToken = resumeTokenDoc.getString("_data").getValue();
-				log.info("Updating resume token for partition " + partition + ", resumeToken: " + resumeToken);
-				configManager.updateResumeToken(configId, resumeToken);
-				watch.resumeAfter(resumeTokenDoc);
-			} catch (Exception ex) {
-				log.error("Exception while processing change", ex);
-			}
-		} while (true);
-	}
+                // Read resumeToken even with no new results to make sure the token does not expire
+                BsonDocument resumeTokenDoc = cursor.getResumeToken();
+                resumeToken = resumeTokenDoc.getString("_data").getValue();
+                log.info("Updating resume token for partition " + partition + ", resumeToken: " + resumeToken);
+                configManager.updateResumeToken(configId, resumeToken);
+                watch.resumeAfter(resumeTokenDoc);
+            } catch (Exception ex) {
+                log.error("Exception while processing change", ex);
+            }
+        } while (true);
+    }
 
 	void register(ChangeStreamListener listener) {
 		log.info("Registering listener {} to worker on partition {} for collection {}", listener.getClass().getName(), partition, mongoConfig.getCollectionName());
 		listeners.add(listener);
 	}
+
+    private static boolean canLogSensitiveData() {
+        return log.isDebugEnabled();
+    }
+
+    private Optional<ObjectId> getChangedDocumentId(ChangeStreamDocument<Document> document) {
+        Document fullDocument = document.getFullDocument();
+        if (fullDocument != null && fullDocument.containsKey("_id")) {
+            return Optional.ofNullable(fullDocument.getObjectId("_id"));
+        }
+
+        BsonDocument documentKey = document.getDocumentKey();
+        if (documentKey != null && documentKey.containsKey("_id")) {
+            return Optional.ofNullable(documentKey.getObjectId("_id").getValue());
+        }
+
+        return Optional.empty();
+    }
+
+    private String toJson(BsonDocument document) {
+        return document == null ? NULL_STRING : document.toJson();
+    }
+
+    private String toJson(Document document) {
+        return document == null ? NULL_STRING : document.toJson();
+    }
+
+    private Bson partitionMatchExpression(Bson documentId, int partitionNumbers, int partitionNo) {
+        return expr(eq(mod(divide(toLong(documentId)), partitionNumbers), partitionNo));
+    }
+
 }
