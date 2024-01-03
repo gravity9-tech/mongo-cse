@@ -1,13 +1,18 @@
 package com.gravity9.mongocdc;
 
+import com.gravity9.mongocdc.listener.TestChangeStreamListener;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import org.bson.Document;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.MongoDBContainer;
+
+import java.util.List;
 
 public abstract class AbstractMongoDbBase {
 
@@ -64,6 +69,24 @@ public abstract class AbstractMongoDbBase {
                 .deleteMany(Filters.eq("collection", getTestCollectionName()));
         mongoDatabase.getCollection(getClusterConfigCollectionName())
                 .deleteMany(Filters.eq("collection", getTestCollectionName()));
+    }
+
+    protected static List<ChangeStreamDocument<Document>> waitForEvents(TestChangeStreamListener listener) {
+        List<ChangeStreamDocument<Document>> result;
+        int testNo = 1;
+
+        do {
+            // Wait for CDC event to arrive
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            result = listener.getEvents();
+            testNo++;
+        } while (result.isEmpty() && testNo < 10);
+
+        return result;
     }
 
 

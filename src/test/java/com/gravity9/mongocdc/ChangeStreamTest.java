@@ -26,17 +26,18 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 	@BeforeEach
 	public void setup() {
 		super.setup();
+		mongoConfig = MongoConfig.builder()
+				.connectionUri(getConnectionUri())
+				.databaseName(getDatabaseName())
+				.collectionName(getTestCollectionName())
+				.workerConfigCollectionName("changeStreamWorkerConfig")
+				.clusterConfigCollectionName("changeStreamClusterConfig")
+				.numberOfPartitions(3)
+				.fullDocument(FullDocument.UPDATE_LOOKUP)
+				.build();
 	}
 
-	private MongoConfig mongoConfig = new MongoConfig.MongoConfigBuilder()
-			.connectionUri(CONN_URI)
-			.databaseName(DB_NAME)
-			.collectionName(COLL_NAME)
-			.workerConfigCollectionName("changeStreamWorkerConfig")
-			.clusterConfigCollectionName("changeStreamClusterConfig")
-			.numberOfPartitions(3)
-			.fullDocument(FullDocument.UPDATE_LOOKUP)
-			.build();
+	private MongoConfig mongoConfig;
 
 	@AfterEach
 	public void tearDown() {
@@ -54,20 +55,14 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 		// Wait for manager to start
 		Thread.sleep(1000);
 
-		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
+		var collection = MongoClientProvider.createClient(getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
+
 		Document testDoc = new Document("testValue", 123);
 		InsertOneResult insertOneResult = collection.insertOne(testDoc);
 		log.info("Inserted document: {}", insertOneResult.getInsertedId());
 
 		List<ChangeStreamDocument<Document>> events;
-		int testNo = 1;
-
-		do {
-			// Wait for CDC event to arrive
-			Thread.sleep(500);
-			events = listener.getEvents();
-			testNo++;
-		} while(events.isEmpty() && testNo < 10);
+		events = waitForEvents(listener);
 
 		assertEquals(1, events.size());
 		assertEquals(OperationType.INSERT, events.get(0).getOperationType());
@@ -86,7 +81,7 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 		manager.registerListener(listener2, List.of(2));
 		manager.start();
 
-		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
+		var collection = MongoClientProvider.createClient(getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
 		Document testDoc0 = new Document(Map.of(
 			"_id", new ObjectId(TestIds.MOD_0_ID),
 			"testValue", 0
