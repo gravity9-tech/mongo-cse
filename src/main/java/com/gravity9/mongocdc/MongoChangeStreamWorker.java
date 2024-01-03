@@ -121,4 +121,13 @@ class MongoChangeStreamWorker implements Runnable {
 		log.info("Registering listener {} to worker on partition {} for collection {}", listener.getClass().getName(), partition, mongoConfig.getCollectionName());
 		listeners.add(listener);
 	}
+
+	public void deregister(ChangeStreamListener listener) {
+		log.info("Unregistering listener {} from worker on partition {} for collection {}", listener.getClass().getName(), partition, mongoConfig.getCollectionName());
+		listeners.remove(listener);
+	}
+
+	public boolean hasRegisteredListener(ChangeStreamListener listener) {
+		return listeners.contains(listener);
+	}
 }

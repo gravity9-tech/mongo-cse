@@ -4,6 +4,9 @@ import com.gravity9.mongocdc.listener.ChangeStreamListener;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import com.gravity9.mongocdc.test.ChangeStreamForAllPartitions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,17 +64,40 @@ public class MongoCDCManager {
 
 	public void registerListener(ChangeStreamListener listener, Collection<Integer> partitions) {
 		partitions.forEach(partition -> {
-			MongoChangeStreamWorker worker = workers.get(partition);
-			if (worker == null) {
-				log.warn("Could not find worker for partition {} - cannot register listener {}", partition, listener.getClass().getName());
-				return;
-			}
-
-			worker.register(listener);
+			var workerOptional = getMongoChangeStreamWorker(listener, partition);
+			workerOptional.ifPresent(worker -> worker.register(listener));
 		});
 	}
 
 	public void registerListenerToAllPartitions(ChangeStreamListener listener) {
 		workers.values().forEach(worker -> worker.register(listener));
+	}
+
+	public void deregisterListener(ChangeStreamListener listener, Collection<Integer> partitions) {
+		partitions.forEach(partition -> {
+			var workerOptional = getMongoChangeStreamWorker(listener, partition);
+			workerOptional.ifPresent(worker -> deregister(worker, listener, partition));
+		});
+	}
+
+	public void deregisterListenerFromAllPartitions(ChangeStreamListener listener) {
+		workers.values().forEach(worker -> worker.deregister(listener));
+	}
+
+	private void deregister(MongoChangeStreamWorker worker, ChangeStreamListener listener, int partition) {
+		if (!worker.hasRegisteredListener(listener)) {
+			log.warn("Listener {} is not registered for partition {}", listener.getClass().getName(), partition);
+			return;
+		}
+		worker.deregister(listener);
+	}
+
+	private Optional<MongoChangeStreamWorker> getMongoChangeStreamWorker(ChangeStreamListener listener, Integer partition) {
+		MongoChangeStreamWorker worker = workers.get(partition);
+		if (worker == null) {
+			log.warn("Could not find worker for partition {} - cannot register listener {}", partition, listener.getClass().getName());
+			return Optional.empty();
+		}
+		return Optional.of(worker);
 	}
 }
