@@ -3,6 +3,7 @@ package com.gravity9.mongocdc;
 import com.gravity9.mongocdc.constants.TestIds;
 import com.gravity9.mongocdc.listener.TestChangeStreamListener;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.OperationType;
 import com.mongodb.client.result.InsertOneResult;
 import org.bson.Document;
@@ -27,6 +28,16 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 		super.setup();
 	}
 
+	private MongoConfig mongoConfig = new MongoConfig.MongoConfigBuilder()
+			.connectionUri(CONN_URI)
+			.databaseName(DB_NAME)
+			.collectionName(COLL_NAME)
+			.workerConfigCollectionName("changeStreamWorkerConfig")
+			.clusterConfigCollectionName("changeStreamClusterConfig")
+			.numberOfPartitions(3)
+			.fullDocument(FullDocument.UPDATE_LOOKUP)
+			.build();
+
 	@AfterEach
 	public void tearDown() {
 		super.cleanUp();
@@ -34,15 +45,16 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 
 	@Test
 	void givenProperConfiguration_shouldStartManagerAndRegisterListener() throws Exception {
-		int partitionNumbers = 3;
-
-		MongoCDCManager manager = new MongoCDCManager(getConnectionUri(), getDatabaseName(), getTestCollectionName(), partitionNumbers);
+		MongoCDCManager manager = new MongoCDCManager(mongoConfig);
 
 		TestChangeStreamListener listener = new TestChangeStreamListener();
 		manager.registerListenerToAllPartitions(listener);
 		manager.start();
 
-		var collection = MongoClientProvider.createClient(getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
+		// Wait for manager to start
+		Thread.sleep(1000);
+
+		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
 		Document testDoc = new Document("testValue", 123);
 		InsertOneResult insertOneResult = collection.insertOne(testDoc);
 		log.info("Inserted document: {}", insertOneResult.getInsertedId());
@@ -64,9 +76,7 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 
 	@Test
 	void givenMultipleListeners_eachShouldReceiveSeparateEvents() throws Exception {
-		int partitionNumbers = 3;
-
-		MongoCDCManager manager = new MongoCDCManager(getConnectionUri(), getDatabaseName(), getTestCollectionName(), partitionNumbers);
+		MongoCDCManager manager = new MongoCDCManager(mongoConfig);
 
 		TestChangeStreamListener listener0 = new TestChangeStreamListener();
 		TestChangeStreamListener listener1 = new TestChangeStreamListener();
@@ -76,10 +86,7 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 		manager.registerListener(listener2, List.of(2));
 		manager.start();
 
-		var collection = MongoClientProvider.createClient(
-				getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName()
-		);
-
+		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
 		Document testDoc0 = new Document(Map.of(
 			"_id", new ObjectId(TestIds.MOD_0_ID),
 			"testValue", 0

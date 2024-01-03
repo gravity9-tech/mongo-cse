@@ -15,19 +15,15 @@ class ConfigManager {
 
 	private static final Logger log = LoggerFactory.getLogger(ConfigManager.class);
 
-	private static final String WORKER_CONFIG_COLLECTION_NAME = "changeStreamWorkerConfig";
-
-	private static final String CLUSTER_CONFIG_COLLECTION_NAME = "changeStreamClusterConfig";
-
 	private final MongoCollection<ChangeStreamWorkerConfig> workerConfigCollection;
 
 	private final MongoCollection<WorkerClusterConfig> clusterConfigCollection;
 
-	ConfigManager(String uri, String databaseName) {
-		MongoClient client = MongoClientProvider.createClient(uri);
-		MongoDatabase db = client.getDatabase(databaseName);
-		workerConfigCollection = db.getCollection(WORKER_CONFIG_COLLECTION_NAME, ChangeStreamWorkerConfig.class);
-		clusterConfigCollection = db.getCollection(CLUSTER_CONFIG_COLLECTION_NAME, WorkerClusterConfig.class);
+	ConfigManager(MongoConfig mongoConfig) {
+		MongoClient client = MongoClientProvider.createClient(mongoConfig.getConnectionUri());
+		MongoDatabase db = client.getDatabase(mongoConfig.getDatabaseName());
+		workerConfigCollection = db.getCollection(mongoConfig.getWorkerConfigCollectionName(), ChangeStreamWorkerConfig.class);
+		clusterConfigCollection = db.getCollection(mongoConfig.getClusterConfigCollectionName(), WorkerClusterConfig.class);
 	}
 
 	void verifyClusterConfig(String collectionName, Integer partitions) {
