@@ -30,8 +30,8 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 				.connectionUri(getConnectionUri())
 				.databaseName(getDatabaseName())
 				.collectionName(getTestCollectionName())
-				.workerConfigCollectionName("changeStreamWorkerConfig")
-				.clusterConfigCollectionName("changeStreamClusterConfig")
+				.workerConfigCollectionName(getWorkerConfigCollectionName())
+				.clusterConfigCollectionName(getClusterConfigCollectionName())
 				.numberOfPartitions(3)
 				.fullDocument(FullDocument.UPDATE_LOOKUP)
 				.build();
@@ -61,8 +61,7 @@ public class ChangeStreamTest extends AbstractMongoDbBase {
 		InsertOneResult insertOneResult = collection.insertOne(testDoc);
 		log.info("Inserted document: {}", insertOneResult.getInsertedId());
 
-		List<ChangeStreamDocument<Document>> events;
-		events = waitForEvents(listener);
+		List<ChangeStreamDocument<Document>> events = waitForEvents(listener);
 
 		assertEquals(1, events.size());
 		assertEquals(OperationType.INSERT, events.get(0).getOperationType());

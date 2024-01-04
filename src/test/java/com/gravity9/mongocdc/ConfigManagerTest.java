@@ -18,8 +18,8 @@ public class ConfigManagerTest extends AbstractMongoDbBase {
 				.connectionUri(getConnectionUri())
 				.databaseName(getDatabaseName())
 				.collectionName(getTestCollectionName())
-				.workerConfigCollectionName("changeStreamWorkerConfig")
-				.clusterConfigCollectionName("changeStreamClusterConfig");
+				.workerConfigCollectionName(getWorkerConfigCollectionName())
+				.clusterConfigCollectionName(getClusterConfigCollectionName());
 	}
 
 	@Test
