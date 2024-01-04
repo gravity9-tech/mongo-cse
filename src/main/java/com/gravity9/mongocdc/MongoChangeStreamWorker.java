@@ -15,10 +15,9 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 
 import static com.gravity9.mongocdc.MongoExpressions.divide;
@@ -42,7 +41,7 @@ class MongoChangeStreamWorker implements Runnable {
     private final int partition;
 
     private final ConfigManager configManager;
-    private final Set<ChangeStreamListener> listeners;
+    private final CopyOnWriteArraySet<ChangeStreamListener> listeners;
     private Thread thread = null;
     private String resumeToken;
     private ObjectId configId;
@@ -54,7 +53,7 @@ class MongoChangeStreamWorker implements Runnable {
         this.mongoConfig = mongoConfig;
         this.configManager = configManager;
         this.partition = partition;
-        this.listeners = new HashSet<>();
+        this.listeners = new CopyOnWriteArraySet<>();
         this.initializationLatch = new CountDownLatch(1);
     }
 
@@ -162,10 +161,23 @@ class MongoChangeStreamWorker implements Runnable {
         } while (true);
     }
 
-    void register(ChangeStreamListener listener) {
-        log.info("Registering listener {} to worker on partition {} for collection {}", listener.getClass().getName(), partition, mongoConfig.getCollectionName());
-        listeners.add(listener);
-    }
+	void register(ChangeStreamListener listener) {
+		log.info("Registering listener {} to worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName());
+		listeners.add(listener);
+	}
+
+	public void deregister(ChangeStreamListener listener) {
+        if (!hasRegisteredListener(listener)) {
+            log.warn("Listener {} is not registered for partition {}", listener, partition);
+            return;
+        }
+		log.info("Unregistering listener {} from worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName());
+		listeners.remove(listener);
+	}
+
+	public boolean hasRegisteredListener(ChangeStreamListener listener) {
+		return listeners.contains(listener);
+	}
 
     private static boolean canLogSensitiveData() {
         return log.isDebugEnabled();

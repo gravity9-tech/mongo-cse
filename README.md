@@ -97,6 +97,17 @@ manager.start();
 
 For more info about `fullDocument`, `fullDocumentBeforeChange` and `maxAwaitTime` see https://www.mongodb.com/docs/manual/reference/method/db.collection.watch/
 
+
+### Listener deregistration
+
+Each listener can be deregistered at any moment. It can be done only for specific 
+partitions or for all to each listener is assigned.
+
+```java
+manager.deregisterListenerFromAllPartitions(listener0);
+manager.deregisterListener(listener0, List.of(0))
+```
+
 ## Cosiderations
 
 ### Configs
