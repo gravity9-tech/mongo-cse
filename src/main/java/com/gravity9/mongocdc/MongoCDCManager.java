@@ -35,17 +35,17 @@ public class MongoCDCManager {
 		}
 
 		var collectionName = clusterConfig.getCollection();
-		Map<Integer, MongoChangeStreamWorker> workers = new HashMap<>();
+		Map<Integer, MongoChangeStreamWorker> workersByPartitionMap = new HashMap<>();
 		log.info("Creating workers for {} partitions for collection {}", partitions, collectionName);
 		for (int partition = 0; partition < partitions; partition++) {
-			workers.put(partition, new MongoChangeStreamWorker(
+			workersByPartitionMap.put(partition, new MongoChangeStreamWorker(
 				mongoConfig,
 				configManager,
 				partition
 			));
 		}
 
-		return workers;
+		return workersByPartitionMap;
 	}
 
 	/**
@@ -79,9 +79,9 @@ public class MongoCDCManager {
 	 * @throws NullPointerException if the thread is null
 	 */
 	public void stop() {
-		log.info("Starting all workers for collection {}", clusterConfig.getCollection());
+		log.info("Stopping all workers for collection {}", clusterConfig.getCollection());
 		workers.values().forEach(MongoChangeStreamWorker::stop);
-		log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
+		log.info("All workers for collection {} are now stopped!", clusterConfig.getCollection());
 	}
 
 	public void registerListener(ChangeStreamListener listener, Collection<Integer> partitions) {
