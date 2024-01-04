@@ -100,7 +100,7 @@ For more info about `fullDocument`, `fullDocumentBeforeChange` and `maxAwaitTime
 
 ### Listener deregistration
 
-Each listener can be deregistred at any moment. It can be done only for specific 
+Each listener can be deregistered at any moment. It can be done only for specific 
 partitions or for all to each listener is assigned.
 
 ```java

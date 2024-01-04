@@ -27,6 +27,8 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
     private MongoCollection<Document> collection;
 
+    private MongoConfig mongoConfig;
+
     @BeforeEach
     public void setup() {
         super.setup();
@@ -41,8 +43,6 @@ class ChangeStreamTest extends AbstractMongoDbBase {
                 .build();
         collection = MongoClientProvider.createClient(getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
     }
-
-    private MongoConfig mongoConfig;
 
     @AfterEach
     public void tearDown() {
@@ -112,13 +112,13 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         manager.registerListenerToAllPartitions(listener0);
         manager.start();
 
-        insertDocumentsToAllPartitions();
+        var numberOfInsertedDocuments = insertDocumentsToAllPartitions();
 
         // Wait for CDC event to arrive
         Thread.sleep(500);
 
         List<ChangeStreamDocument<Document>> events0 = listener0.getEvents();
-        assertEquals(3, events0.size());
+        assertEquals(numberOfInsertedDocuments, events0.size());
 
         // when
         manager.deregisterListenerFromAllPartitions(listener0);
@@ -136,7 +136,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
         // only old events are available
         List<ChangeStreamDocument<Document>> events1 = listener0.getEvents();
-        assertEquals(3, events1.size());
+        assertEquals(events0.size(), events1.size());
     }
 
     @Test
@@ -147,13 +147,13 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         manager.registerListenerToAllPartitions(listener0);
         manager.start();
 
-        insertDocumentsToAllPartitions();
+        var numberOfInsertedDocuments = insertDocumentsToAllPartitions();
 
         // Wait for CDC event to arrive
         Thread.sleep(500);
 
         List<ChangeStreamDocument<Document>> events0 = listener0.getEvents();
-        assertEquals(3, events0.size());
+        assertEquals(numberOfInsertedDocuments, events0.size());
 
         // when
         manager.deregisterListener(listener0, List.of(0));
@@ -170,11 +170,14 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         Thread.sleep(500);
 
         // only old events and deletes from not deregistered partitions are available
+        var numberOfExpectedDeleteEventsOnListeners = 2;
+        var numberOfExpectedEvents = numberOfInsertedDocuments + numberOfExpectedDeleteEventsOnListeners;
         List<ChangeStreamDocument<Document>> events1 = listener0.getEvents();
-        assertEquals(5, events1.size());
+        assertEquals(numberOfExpectedEvents, events1.size());
     }
 
-    private void insertDocumentsToAllPartitions() {
+    private int insertDocumentsToAllPartitions() {
+        int numberOfInsertedDocuments = 0;
         Document testDoc0 = new Document(Map.of(
                 "_id", new ObjectId(TestIds.MOD_0_ID),
                 "testValue", 0
@@ -187,8 +190,8 @@ class ChangeStreamTest extends AbstractMongoDbBase {
                 "_id", new ObjectId(TestIds.MOD_2_ID),
                 "testValue", 2
         ));
-        collection.insertOne(testDoc0);
-        collection.insertOne(testDoc1);
-        collection.insertOne(testDoc2);
+        var documentsToInsert = List.of(testDoc0, testDoc1, testDoc2);
+        collection.insertMany(documentsToInsert);
+        return documentsToInsert.size();
     }
 }

@@ -108,17 +108,13 @@ public class MongoCDCManager {
     }
 
     private void deregister(MongoChangeStreamWorker worker, ChangeStreamListener listener, int partition) {
-        if (!worker.hasRegisteredListener(listener)) {
-            log.warn("Listener {} is not registered for partition {}", listener.getClass().getName(), partition);
-            return;
-        }
         worker.deregister(listener);
     }
 
     private Optional<MongoChangeStreamWorker> getMongoChangeStreamWorker(ChangeStreamListener listener, Integer partition) {
         MongoChangeStreamWorker worker = workers.get(partition);
         if (worker == null) {
-            log.warn("Could not find worker for partition {} - cannot register listener {}", partition, listener.getClass().getName());
+            log.warn("Could not find worker for partition {} - cannot register listener {}", partition, listener);
             return Optional.empty();
         }
         return Optional.of(worker);
