@@ -48,11 +48,22 @@ public class MongoCDCManager {
 		return workers;
 	}
 
+	/**
+	 * Starts all workers for the specified collection in the MongoDB change data capture (CDC) manager.
+	 * The workers will begin listening for change events and processing them accordingly.
+	 * This method blocks until all workers are initialized and ready to process change events.
+	 *
+	 * @throws StartFailureException if an exception occurs during the start process
+	 */
 	public void start() {
-		log.info("Starting all workers for collection {}", clusterConfig.getCollection());
-		workers.values().forEach(MongoChangeStreamWorker::start);
-		workers.values().forEach(MongoChangeStreamWorker::awaitInitialization);
-		log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
+		try {
+			log.info("Starting all workers for collection {}", clusterConfig.getCollection());
+			workers.values().forEach(MongoChangeStreamWorker::start);
+			workers.values().forEach(MongoChangeStreamWorker::awaitInitialization);
+			log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
+		} catch (Exception ex) {
+			throw StartFailureException.startFailure(ex);
+		}
 	}
 
 	public void stop() {
