@@ -99,7 +99,7 @@ public class MongoCDCManager {
     public void deregisterListener(ChangeStreamListener listener, Collection<Integer> partitions) {
         partitions.forEach(partition -> {
             var workerOptional = getMongoChangeStreamWorker(listener, partition);
-            workerOptional.ifPresent(worker -> deregister(worker, listener, partition));
+            workerOptional.ifPresent(worker -> deregister(worker, listener));
         });
     }
 
@@ -107,7 +107,7 @@ public class MongoCDCManager {
         workers.values().forEach(worker -> worker.deregister(listener));
     }
 
-    private void deregister(MongoChangeStreamWorker worker, ChangeStreamListener listener, int partition) {
+    private void deregister(MongoChangeStreamWorker worker, ChangeStreamListener listener) {
         worker.deregister(listener);
     }
 
