@@ -28,7 +28,7 @@ public class ConfigManagerTest {
 	void givenSameConfiguration_shouldNotThrowException() {
 		int partitions = 3;
 		var mongoConfig = mongoConfigBuilder
-				.partitions(partitions)
+				.numberOfPartitions(partitions)
 				.build();
 		new MongoCDCManager(mongoConfig);
 		assertDoesNotThrow(() -> new MongoCDCManager(mongoConfig));
@@ -41,10 +41,10 @@ public class ConfigManagerTest {
 	@Test
 	void givenNewConfigWithDifferentNumberOfPartitions_shouldThrowException() {
 		var firstConfig = mongoConfigBuilder
-				.partitions(3)
+				.numberOfPartitions(3)
 				.build();
 		var secondConfig = mongoConfigBuilder
-				.partitions(1)
+				.numberOfPartitions(1)
 				.build();
 		new MongoCDCManager(firstConfig);
 		assertThrows(IllegalArgumentException.class, () -> new MongoCDCManager(secondConfig));

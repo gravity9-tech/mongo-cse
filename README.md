@@ -51,11 +51,11 @@ Note that both listeners will receive all events from partitions 0 and 1, while 
 
 ```java
 // Create MongoConfig
-MongoConfig mongoConfig = new MongoConfig.MongoConfigBuilder()
+MongoConfig mongoConfig = MongoConfig.builder()
 		.connectionUri("mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=dbrs&retryWrites=true&w=majority")
 		.databaseName("test-db")
 		.collectionName("example")
-		.partitions(3)
+		.numberOfPartitions(3)
 		.workerConfigCollectionName("changeStreamWorkerConfig")
 		.clusterConfigCollectionName("changeStreamClusterConfig")
 		.fullDocument(FullDocument.UPDATE_LOOKUP)
@@ -87,7 +87,7 @@ manager.start();
 * `connectionUri` - MongoDB URI
 * `databaseName` - name of the database
 * `collectionName` - name of the collection on which change stream listener should be applied
-* `partitions` - how many partitions should be used (how many parallel listeners can be run)
+* `numberOfPartitions` - how many partitions should be used (how many parallel listeners can be run)
 * `workerConfigCollectionName` - by default set to `changeStreamWorkerConfig`. Collection name in which worker config is stored
 * `clusterConfigCollectionName` - by default set to `changeStreamClusterConfig`. collection name in which cluster config is stored
 * `fullDocument` - by default set to `FullDocument.UPDATE_LOOKUP` to return the latest version of the document.

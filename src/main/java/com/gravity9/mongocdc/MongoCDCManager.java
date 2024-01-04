@@ -25,8 +25,8 @@ public class MongoCDCManager {
 	public MongoCDCManager(MongoConfig mongoConfig) {
 		this.mongoConfig = mongoConfig;
 		this.configManager = new ConfigManager(mongoConfig);
-		configManager.verifyClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getPartitions());
-		this.clusterConfig = configManager.getOrInitClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getPartitions());
+		configManager.verifyClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getNumberOfPartitions());
+		this.clusterConfig = configManager.getOrInitClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getNumberOfPartitions());
 		this.workers = createWorkers();
 	}
 

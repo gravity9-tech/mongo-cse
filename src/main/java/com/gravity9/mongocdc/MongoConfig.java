@@ -11,7 +11,7 @@ public class MongoConfig {
 
 	private String collectionName;
 
-	private int partitions;
+	private int numberOfPartitions;
 
 	private String workerConfigCollectionName;
 
@@ -27,12 +27,16 @@ public class MongoConfig {
 		this.connectionUri = mongoConfigBuilder.connectionUri;
 		this.databaseName = mongoConfigBuilder.databaseName;
 		this.collectionName = mongoConfigBuilder.collectionName;
-		this.partitions = mongoConfigBuilder.partitions;
+		this.numberOfPartitions = mongoConfigBuilder.numberOfPartitions;
 		this.workerConfigCollectionName = mongoConfigBuilder.workerConfigCollectionName;
 		this.clusterConfigCollectionName = mongoConfigBuilder.clusterConfigCollectionName;
 		this.fullDocument = mongoConfigBuilder.fullDocument;
 		this.fullDocumentBeforeChange = mongoConfigBuilder.fullDocumentBeforeChange;
 		this.maxAwaitTimeInMs = mongoConfigBuilder.maxAwaitTimeInMs;
+	}
+
+	public static MongoConfigBuilder builder() {
+		return new MongoConfigBuilder();
 	}
 
 	public String getConnectionUri() {
@@ -47,8 +51,8 @@ public class MongoConfig {
 		return collectionName;
 	}
 
-	public int getPartitions() {
-		return partitions;
+	public int getNumberOfPartitions() {
+		return numberOfPartitions;
 	}
 
 	public String getWorkerConfigCollectionName() {
@@ -79,7 +83,7 @@ public class MongoConfig {
 
 		private String collectionName;
 
-		private int partitions;
+		private int numberOfPartitions;
 
 		private String workerConfigCollectionName = "changeStreamWorkerConfig";
 
@@ -107,8 +111,8 @@ public class MongoConfig {
 			return this;
 		}
 
-		public MongoConfigBuilder partitions(int partitions) {
-			this.partitions = partitions;
+		public MongoConfigBuilder numberOfPartitions(int numberOfPartitions) {
+			this.numberOfPartitions = numberOfPartitions;
 			return this;
 		}
 
