@@ -1,11 +1,12 @@
 package com.gravity9.mongocdc;
 
 import com.gravity9.mongocdc.listener.ChangeStreamListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MongoCDCManager {
 
@@ -47,12 +48,36 @@ public class MongoCDCManager {
 		return workers;
 	}
 
+	/**
+	 * Starts all workers for the specified collection in the MongoDB change data capture (CDC) manager.
+	 * The workers will begin listening for change events and processing them accordingly.
+	 * This method blocks until all workers are initialized and ready to process change events.
+	 *
+	 * @throws StartFailureException if an exception occurs during the start process
+	 */
 	public void start() {
-		log.info("Starting all workers for collection {}", clusterConfig.getCollection());
-		workers.values().forEach(MongoChangeStreamWorker::start);
-		log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
+		try {
+			log.info("Starting all workers for collection {}", clusterConfig.getCollection());
+			workers.values().forEach(MongoChangeStreamWorker::start);
+			workers.values().forEach(MongoChangeStreamWorker::awaitInitialization);
+			log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
+		} catch (Exception ex) {
+			try {
+				stop();
+			} catch (Exception exception2) {
+				log.error("Stop on exception failed", exception2);
+			}
+			throw StartFailureException.startFailure(ex);
+		}
 	}
 
+	/**
+	 * Stops all workers for the specified collection in the MongoDB change data capture (CDC) manager.
+	 * This method stops the workers from listening for change events and processing them.
+	 * It also sets the thread reference to null, indicating that the worker has been stopped.
+	 *
+	 * @throws NullPointerException if the thread is null
+	 */
 	public void stop() {
 		log.info("Starting all workers for collection {}", clusterConfig.getCollection());
 		workers.values().forEach(MongoChangeStreamWorker::stop);
