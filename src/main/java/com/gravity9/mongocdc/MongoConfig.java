@@ -91,7 +91,7 @@ public class MongoConfig {
 
 		private FullDocument fullDocument = FullDocument.UPDATE_LOOKUP;
 
-		private FullDocumentBeforeChange fullDocumentBeforeChange = FullDocumentBeforeChange.OFF;
+		private FullDocumentBeforeChange fullDocumentBeforeChange = FullDocumentBeforeChange.DEFAULT;
 
 		@SuppressWarnings("checkstyle:magicnumber")
 		private long maxAwaitTimeInMs = 1000;

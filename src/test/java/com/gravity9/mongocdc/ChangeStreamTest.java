@@ -5,33 +5,43 @@ import com.gravity9.mongocdc.listener.TestChangeStreamListener;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.OperationType;
-import java.util.List;
-import java.util.Map;
+import com.mongodb.client.result.InsertOneResult;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static com.gravity9.mongocdc.constants.TestConstants.COLL_NAME;
-import static com.gravity9.mongocdc.constants.TestConstants.CONN_URI;
-import static com.gravity9.mongocdc.constants.TestConstants.DB_NAME;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ChangeStreamTest {
+public class ChangeStreamTest extends AbstractMongoDbBase {
 
-	private MongoConfig mongoConfig = new MongoConfig.MongoConfigBuilder()
-			.connectionUri(CONN_URI)
-			.databaseName(DB_NAME)
-			.collectionName(COLL_NAME)
-			.workerConfigCollectionName("changeStreamWorkerConfig")
-			.clusterConfigCollectionName("changeStreamClusterConfig")
-			.numberOfPartitions(3)
-			.fullDocument(FullDocument.UPDATE_LOOKUP)
-			.build();
+	private static final Logger log = LoggerFactory.getLogger(ChangeStreamTest.class);
+
+	@BeforeEach
+	public void setup() {
+		super.setup();
+		mongoConfig = MongoConfig.builder()
+				.connectionUri(getConnectionUri())
+				.databaseName(getDatabaseName())
+				.collectionName(getTestCollectionName())
+				.workerConfigCollectionName(getWorkerConfigCollectionName())
+				.clusterConfigCollectionName(getClusterConfigCollectionName())
+				.numberOfPartitions(3)
+				.fullDocument(FullDocument.UPDATE_LOOKUP)
+				.build();
+	}
+
+	private MongoConfig mongoConfig;
 
 	@AfterEach
-	void cleanUp() {
-		TestMongoUtils.cleanUp();
+	public void tearDown() {
+		super.cleanUp();
 	}
 
 	@Test
@@ -45,14 +55,14 @@ public class ChangeStreamTest {
 		// Wait for manager to start
 		Thread.sleep(1000);
 
-		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
+		var collection = MongoClientProvider.createClient(getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
+
 		Document testDoc = new Document("testValue", 123);
-		collection.insertOne(testDoc);
+		InsertOneResult insertOneResult = collection.insertOne(testDoc);
+		log.info("Inserted document: {}", insertOneResult.getInsertedId());
 
-		// Wait for CDC event to arrive
-		Thread.sleep(1000);
+		List<ChangeStreamDocument<Document>> events = waitForEvents(listener);
 
-		List<ChangeStreamDocument<Document>> events = listener.getEvents();
 		assertEquals(1, events.size());
 		assertEquals(OperationType.INSERT, events.get(0).getOperationType());
 		assertEquals(123, events.get(0).getFullDocument().getInteger("testValue"));
@@ -70,7 +80,7 @@ public class ChangeStreamTest {
 		manager.registerListener(listener2, List.of(2));
 		manager.start();
 
-		var collection = MongoClientProvider.createClient(CONN_URI).getDatabase(DB_NAME).getCollection(COLL_NAME);
+		var collection = MongoClientProvider.createClient(getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
 		Document testDoc0 = new Document(Map.of(
 			"_id", new ObjectId(TestIds.MOD_0_ID),
 			"testValue", 0
