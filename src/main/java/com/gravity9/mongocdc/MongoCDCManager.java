@@ -62,10 +62,22 @@ public class MongoCDCManager {
 			workers.values().forEach(MongoChangeStreamWorker::awaitInitialization);
 			log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
 		} catch (Exception ex) {
+			try {
+				stop();
+			} catch (Exception exception2) {
+				log.error("Stop on exception failed", exception2);
+			}
 			throw StartFailureException.startFailure(ex);
 		}
 	}
 
+	/**
+	 * Stops all workers for the specified collection in the MongoDB change data capture (CDC) manager.
+	 * This method stops the workers from listening for change events and processing them.
+	 * It also sets the thread reference to null, indicating that the worker has been stopped.
+	 *
+	 * @throws NullPointerException if the thread is null
+	 */
 	public void stop() {
 		log.info("Starting all workers for collection {}", clusterConfig.getCollection());
 		workers.values().forEach(MongoChangeStreamWorker::stop);

@@ -36,6 +36,7 @@ class MongoChangeStreamWorker implements Runnable {
 
     private static final String NULL_STRING = "null";
     private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
+    private static final long DEFAULT_INIT_TIMEOUT_MS = 30 * 1000L;
 
     private final MongoConfig mongoConfig;
     private final int partition;
@@ -76,7 +77,7 @@ class MongoChangeStreamWorker implements Runnable {
 
     public void awaitInitialization() {
         try {
-            initializationLatch.await();
+            initializationLatch.await(DEFAULT_INIT_TIMEOUT_MS, MILLISECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
