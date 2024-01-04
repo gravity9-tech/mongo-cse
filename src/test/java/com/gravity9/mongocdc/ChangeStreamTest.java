@@ -177,7 +177,6 @@ class ChangeStreamTest extends AbstractMongoDbBase {
     }
 
     private int insertDocumentsToAllPartitions() {
-        int numberOfInsertedDocuments = 0;
         Document testDoc0 = new Document(Map.of(
                 "_id", new ObjectId(TestIds.MOD_0_ID),
                 "testValue", 0
@@ -191,7 +190,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
                 "testValue", 2
         ));
         var documentsToInsert = List.of(testDoc0, testDoc1, testDoc2);
-        collection.insertMany(documentsToInsert);
-        return documentsToInsert.size();
+        var result = collection.insertMany(documentsToInsert);
+        return result.getInsertedIds().size();
     }
 }
