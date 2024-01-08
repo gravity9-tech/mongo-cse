@@ -146,12 +146,13 @@ class MongoChangeStreamWorker implements Runnable {
                 }
 
                 // Read resumeToken even with no new results to make sure the token does not expire
-                var resumeTokenOpt = readResumeToken(cursor.getResumeToken());
+                BsonDocument resumeTokenDoc = cursor.getResumeToken();
+                var resumeTokenOpt = readResumeToken(resumeTokenDoc);
                 if (resumeTokenOpt.isPresent()) {
                     resumeToken = resumeTokenOpt.get();
                     log.info("Updating resume token for partition " + partition + ", resumeToken: " + resumeToken);
                     configManager.updateResumeToken(configId, resumeToken);
-                    watch.resumeAfter(cursor.getResumeToken());
+                    watch.resumeAfter(resumeTokenDoc);
                 }
             } catch (Exception ex) {
                 log.error("Exception while processing change", ex);
