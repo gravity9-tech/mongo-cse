@@ -4,11 +4,14 @@ import com.gravity9.mongocdc.constants.TestIds;
 import com.gravity9.mongocdc.listener.TestChangeStreamListener;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.OperationType;
 import com.mongodb.client.result.InsertOneResult;
+import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,11 +67,51 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         InsertOneResult insertOneResult = collection.insertOne(testDoc);
         log.info("Inserted document: {}", insertOneResult.getInsertedId());
 
-        List<ChangeStreamDocument<Document>> events = waitForEvents(listener);
+        int expectedEventCount = 1;
+        List<ChangeStreamDocument<Document>> events = waitForEvents(listener, expectedEventCount);
 
-        assertEquals(1, events.size());
+        assertEquals(expectedEventCount, events.size());
         assertEquals(OperationType.INSERT, events.get(0).getOperationType());
         assertEquals(123, events.get(0).getFullDocument().getInteger("testValue"));
+    }
+
+    @Test
+    void listenerReceivesAllBasicOpTypes() throws Exception {
+        MongoCDCManager manager = new MongoCDCManager(mongoConfig);
+
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        // Wait for manager to start
+        Thread.sleep(1000);
+
+        final var initialValue = 123;
+        final var newValue = 99;
+
+        Document testDoc = new Document("testValue", initialValue);
+        InsertOneResult insertOneResult = collection.insertOne(testDoc);
+        ObjectId insertedId = insertOneResult.getInsertedId().asObjectId().getValue();
+        log.info("Inserted document: {}", insertedId.toHexString());
+
+        Bson updates = Updates.set("testValue", newValue);
+
+        Document query = new Document().append("testValue", initialValue);
+
+        UpdateResult updateResult = collection.updateOne(query, updates);
+
+        var deleteResult = collection.deleteOne(Filters.eq("_id", insertedId));
+
+        int expectedEventCount = 3;
+        List<ChangeStreamDocument<Document>> events = waitForEvents(listener, expectedEventCount);
+
+        assertEquals(1, updateResult.getModifiedCount());
+        assertEquals(1, deleteResult.getDeletedCount());
+
+        assertEquals(expectedEventCount, events.size());
+        assertEventsContainNumberOfOpTypes(events, OperationType.INSERT, 1);
+        assertEventsContainNumberOfOpTypes(events, OperationType.DELETE, 1);
+        assertEventsContainNumberOfOpTypes(events, OperationType.UPDATE, 1);
     }
 
     @Test
@@ -192,5 +235,10 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         var documentsToInsert = List.of(testDoc0, testDoc1, testDoc2);
         var result = collection.insertMany(documentsToInsert);
         return result.getInsertedIds().size();
+    }
+
+    private void assertEventsContainNumberOfOpTypes(List<ChangeStreamDocument<Document>> events, OperationType operationType, long expectedCount) {
+        long actualCount = events.stream().filter(op -> op.getOperationType() == operationType).count();
+        assertEquals(expectedCount, actualCount);
     }
 }
