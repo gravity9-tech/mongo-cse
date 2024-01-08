@@ -71,7 +71,7 @@ public abstract class AbstractMongoDbBase {
                 .deleteMany(Filters.eq("collection", getTestCollectionName()));
     }
 
-    protected static List<ChangeStreamDocument<Document>> waitForEvents(TestChangeStreamListener listener) {
+    protected static List<ChangeStreamDocument<Document>> waitForEvents(TestChangeStreamListener listener, int expectedCount) {
         List<ChangeStreamDocument<Document>> result;
         int testNo = 1;
 
@@ -84,7 +84,13 @@ public abstract class AbstractMongoDbBase {
             }
             result = listener.getEvents();
             testNo++;
-        } while (result.isEmpty() && testNo < 10);
+        } while (
+                testNo < 10
+                        && (
+                        (expectedCount == 0 && result.isEmpty())
+                                || (expectedCount > 0 && result.size() < expectedCount)
+                )
+        );
 
         return result;
     }
