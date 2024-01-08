@@ -84,7 +84,13 @@ public abstract class AbstractMongoDbBase {
             }
             result = listener.getEvents();
             testNo++;
-        } while (result.isEmpty() && testNo < 10 && (expectedCount > 0 && result.size() < expectedCount));
+        } while (
+                testNo < 10
+                        && (
+                        (expectedCount == 0 && result.isEmpty())
+                                || (expectedCount > 0 && result.size() < expectedCount)
+                )
+        );
 
         return result;
     }
