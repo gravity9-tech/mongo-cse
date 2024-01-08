@@ -34,8 +34,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 class MongoChangeStreamWorker implements Runnable {
 
     private static final String NULL_STRING = "null";
-    private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
+    private static final String RESUME_TOKEN_DATA_PROPERTY = "_data";
     private static final long DEFAULT_INIT_TIMEOUT_MS = 30 * 1000L;
+    private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
 
     private final MongoConfig mongoConfig;
     private final int partition;
@@ -102,7 +103,7 @@ class MongoChangeStreamWorker implements Runnable {
 
         if (resumeToken != null) {
             log.info("Resuming change stream for partition {} on collection {} with token: {}", partition, mongoConfig.getCollectionName(), resumeToken);
-            watch.resumeAfter(new BsonDocument("_data", new BsonString(resumeToken)));
+            watch.resumeAfter(buildResumeToken(resumeToken));
         } else {
             log.info("No resume token found for partition {} on collection {}, starting fresh", partition, mongoConfig.getCollectionName());
         }
@@ -145,15 +146,12 @@ class MongoChangeStreamWorker implements Runnable {
                 }
 
                 // Read resumeToken even with no new results to make sure the token does not expire
-                BsonDocument resumeTokenDoc = cursor.getResumeToken();
-                if (resumeTokenDoc != null
-                        && resumeTokenDoc.containsKey("_data")
-                        && resumeTokenDoc.getString("_data").getValue() != null
-                ) {
-                    resumeToken = resumeTokenDoc.getString("_data").getValue();
+                var resumeTokenOpt = readResumeToken(cursor.getResumeToken());
+                if (resumeTokenOpt.isPresent()) {
+                    resumeToken = resumeTokenOpt.get();
                     log.info("Updating resume token for partition " + partition + ", resumeToken: " + resumeToken);
                     configManager.updateResumeToken(configId, resumeToken);
-                    watch.resumeAfter(resumeTokenDoc);
+                    watch.resumeAfter(cursor.getResumeToken());
                 }
             } catch (Exception ex) {
                 log.error("Exception while processing change", ex);
@@ -161,7 +159,7 @@ class MongoChangeStreamWorker implements Runnable {
         } while (true);
     }
 
-	void register(ChangeStreamListener listener) {
+    void register(ChangeStreamListener listener) {
 		log.info("Registering listener {} to worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName());
 		listeners.add(listener);
 	}
@@ -209,4 +207,16 @@ class MongoChangeStreamWorker implements Runnable {
         return expr(eq(mod(divide(toLong(documentId)), partitionNumbers), partitionNo));
     }
 
+    private Optional<String> readResumeToken(BsonDocument resumeTokenDoc) {
+        if (resumeTokenDoc != null
+                && resumeTokenDoc.containsKey(RESUME_TOKEN_DATA_PROPERTY)
+        ) {
+            return Optional.ofNullable(resumeTokenDoc.getString(RESUME_TOKEN_DATA_PROPERTY).getValue());
+        }
+        return Optional.empty();
+    }
+
+    private BsonDocument buildResumeToken(String aResumeToken) {
+        return new BsonDocument(RESUME_TOKEN_DATA_PROPERTY, new BsonString(aResumeToken));
+    }
 }
