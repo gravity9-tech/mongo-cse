@@ -36,6 +36,7 @@ class MongoChangeStreamWorker implements Runnable {
     private static final String NULL_STRING = "null";
     private static final String RESUME_TOKEN_DATA_PROPERTY = "_data";
     private static final long DEFAULT_INIT_TIMEOUT_MS = 30 * 1000L;
+    private static final long DEFAULT_SHUTDOWN_TIMEOUT_MS = 30 * 1000L;
     private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
 
     private final MongoConfig mongoConfig;
@@ -43,10 +44,12 @@ class MongoChangeStreamWorker implements Runnable {
 
     private final ConfigManager configManager;
     private final CopyOnWriteArraySet<ChangeStreamListener> listeners;
+    private final CountDownLatch initializationLatch;
+    private final CountDownLatch shutdownLatch;
     private Thread thread = null;
     private String resumeToken;
     private ObjectId configId;
-    private CountDownLatch initializationLatch;
+    private boolean isReadingFromChangeStream = false;
 
     MongoChangeStreamWorker(MongoConfig mongoConfig,
                             ConfigManager configManager,
@@ -56,6 +59,7 @@ class MongoChangeStreamWorker implements Runnable {
         this.partition = partition;
         this.listeners = new CopyOnWriteArraySet<>();
         this.initializationLatch = new CountDownLatch(1);
+        this.shutdownLatch = new CountDownLatch(1);
     }
 
     public void start() {
@@ -70,17 +74,14 @@ class MongoChangeStreamWorker implements Runnable {
     }
 
     public void stop() {
-        this.thread.stop();
+        this.isReadingFromChangeStream = false;
+        this.awaitShutdown();
         this.thread = null;
         log.info("Worker for partition {} on collection {} stopped!", partition, mongoConfig.getCollectionName());
     }
 
     public void awaitInitialization() {
-        try {
-            initializationLatch.await(DEFAULT_INIT_TIMEOUT_MS, MILLISECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        awaitCountDownLatch(initializationLatch, DEFAULT_INIT_TIMEOUT_MS);
     }
 
     @Override
@@ -109,6 +110,7 @@ class MongoChangeStreamWorker implements Runnable {
         }
 
         boolean firstCursorOpen = true;
+        isReadingFromChangeStream = true;
         do {
             try (var cursor = watch.cursor()) {
                 if (firstCursorOpen) {
@@ -124,7 +126,8 @@ class MongoChangeStreamWorker implements Runnable {
                     switch (document.getOperationType()) {
                         case UPDATE:
                             if (canLogSensitiveData()) {
-                                log.debug("UPDATE, document id: {}, changedFields: {}", changedDocumentId, document.getUpdateDescription() == null ? NULL_STRING : toJson(document.getUpdateDescription().getUpdatedFields()));
+                                var updateDescription = document.getUpdateDescription();
+                                log.debug("UPDATE, document id: {}, changedFields: {}", changedDocumentId, updateDescription == null ? NULL_STRING : toJson(updateDescription.getUpdatedFields()));
                             } else {
                                 log.info("UPDATE, document id: {}", changedDocumentId);
                             }
@@ -156,8 +159,12 @@ class MongoChangeStreamWorker implements Runnable {
                 }
             } catch (Exception ex) {
                 log.error("Exception while processing change", ex);
+            } finally {
+                if (!isReadingFromChangeStream) {
+                    shutdownLatch.countDown();
+                }
             }
-        } while (true);
+        } while (isReadingFromChangeStream);
     }
 
     void register(ChangeStreamListener listener) {
@@ -219,5 +226,18 @@ class MongoChangeStreamWorker implements Runnable {
 
     private BsonDocument buildResumeToken(String aResumeToken) {
         return new BsonDocument(RESUME_TOKEN_DATA_PROPERTY, new BsonString(aResumeToken));
+    }
+
+    private void awaitShutdown() {
+        awaitCountDownLatch(shutdownLatch, DEFAULT_SHUTDOWN_TIMEOUT_MS);
+    }
+
+    private void awaitCountDownLatch(CountDownLatch countDownLatch, long timeout) {
+        try {
+            countDownLatch.await(timeout, MILLISECONDS);
+        } catch (InterruptedException e) {
+            this.thread.interrupt();
+            throw new RuntimeException(e);
+        }
     }
 }

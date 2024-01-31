@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ChangeStreamTest extends AbstractMongoDbBase {
@@ -217,6 +218,26 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         var numberOfExpectedEvents = numberOfInsertedDocuments + numberOfExpectedDeleteEventsOnListeners;
         List<ChangeStreamDocument<Document>> events1 = listener0.getEvents();
         assertEquals(numberOfExpectedEvents, events1.size());
+    }
+
+    @Test
+    void shouldGracefullyStopAllRegisteredListeners() throws Exception {
+        MongoCDCManager manager = new MongoCDCManager(mongoConfig);
+
+        TestChangeStreamListener listener0 = new TestChangeStreamListener();
+        TestChangeStreamListener listener1 = new TestChangeStreamListener();
+        TestChangeStreamListener listener2 = new TestChangeStreamListener();
+        manager.registerListener(listener0, List.of(0));
+        manager.registerListener(listener1, List.of(1));
+        manager.registerListener(listener2, List.of(2));
+        manager.start();
+
+        insertDocumentsToAllPartitions();
+
+        // Wait for CDC event to arrive
+        Thread.sleep(500);
+
+        assertDoesNotThrow(manager::stop);
     }
 
     private int insertDocumentsToAllPartitions() {
