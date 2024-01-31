@@ -49,7 +49,7 @@ class MongoChangeStreamWorker implements Runnable {
     private Thread thread = null;
     private String resumeToken;
     private ObjectId configId;
-    private boolean isReadingFromChangeStream = false;
+    private volatile boolean isReadingFromChangeStream = false;
 
     MongoChangeStreamWorker(MongoConfig mongoConfig,
                             ConfigManager configManager,
