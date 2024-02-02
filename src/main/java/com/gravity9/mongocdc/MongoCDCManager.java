@@ -59,8 +59,10 @@ public class MongoCDCManager {
     public void start() {
         try {
             log.info("Starting all workers for collection {}", clusterConfig.getCollection());
-            workers.values().forEach(MongoChangeStreamWorker::start);
-            workers.values().forEach(MongoChangeStreamWorker::awaitInitialization);
+            workers.values().forEach(worker -> {
+                runInNewThread(worker);
+                worker.awaitInitialization();
+            });
             log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
         } catch (Exception ex) {
             try {
@@ -118,5 +120,10 @@ public class MongoCDCManager {
             return Optional.empty();
         }
         return Optional.of(worker);
+    }
+
+    private void runInNewThread(MongoChangeStreamWorker worker) {
+        Thread thread = new Thread(worker);
+        thread.start();
     }
 }
