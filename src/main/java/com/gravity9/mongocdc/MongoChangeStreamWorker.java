@@ -69,7 +69,6 @@ class MongoChangeStreamWorker implements Runnable {
 
     public void awaitInitialization() {
         awaitCountDownLatch(initializationLatch, DEFAULT_INIT_TIMEOUT_MS);
-        log.info("Worker for partition {} on collection {} is now started!", partition, mongoConfig.getCollectionName());
     }
 
     @Override
@@ -108,6 +107,7 @@ class MongoChangeStreamWorker implements Runnable {
                 if (firstCursorOpen) {
                     firstCursorOpen = false;
                     initializationLatch.countDown();
+                    log.info("Worker for partition {} on collection {} is now started!", partition, mongoConfig.getCollectionName());
                 }
 
                 ChangeStreamDocument<Document> document = cursor.tryNext();
@@ -228,7 +228,6 @@ class MongoChangeStreamWorker implements Runnable {
         try {
             countDownLatch.await(timeout, MILLISECONDS);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
     }
