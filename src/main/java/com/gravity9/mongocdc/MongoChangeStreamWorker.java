@@ -46,7 +46,6 @@ class MongoChangeStreamWorker implements Runnable {
     private final CopyOnWriteArraySet<ChangeStreamListener> listeners;
     private final CountDownLatch initializationLatch;
     private final CountDownLatch shutdownLatch;
-    private Thread thread = null;
     private String resumeToken;
     private ObjectId configId;
     private volatile boolean isReadingFromChangeStream = false;
@@ -62,30 +61,23 @@ class MongoChangeStreamWorker implements Runnable {
         this.shutdownLatch = new CountDownLatch(1);
     }
 
-    public void start() {
-        log.info("Starting worker for partition {} on collection '{}'", partition, mongoConfig.getCollectionName());
-        ChangeStreamWorkerConfig changeStreamWorkerConfig = configManager.getConfigOrInit(mongoConfig.getCollectionName(), partition);
-        this.resumeToken = changeStreamWorkerConfig.getResumeToken();
-        this.configId = changeStreamWorkerConfig.getId();
-
-        this.thread = new Thread(this);
-        this.thread.start();
-        log.info("Worker for partition {} on collection {} is now started!", partition, mongoConfig.getCollectionName());
-    }
-
     public void stop() {
         this.isReadingFromChangeStream = false;
         this.awaitShutdown();
-        this.thread = null;
         log.info("Worker for partition {} on collection {} stopped!", partition, mongoConfig.getCollectionName());
     }
 
     public void awaitInitialization() {
         awaitCountDownLatch(initializationLatch, DEFAULT_INIT_TIMEOUT_MS);
+        log.info("Worker for partition {} on collection {} is now started!", partition, mongoConfig.getCollectionName());
     }
 
     @Override
     public void run() {
+        log.info("Starting worker for partition {} on collection '{}'", partition, mongoConfig.getCollectionName());
+
+        initConfiguration();
+
         MongoClient mongoClient = MongoClientProvider.createClient(mongoConfig.getConnectionUri());
         MongoDatabase db = mongoClient.getDatabase(mongoConfig.getDatabaseName());
         MongoCollection<Document> collection = db.getCollection(this.mongoConfig.getCollectionName());
@@ -236,8 +228,14 @@ class MongoChangeStreamWorker implements Runnable {
         try {
             countDownLatch.await(timeout, MILLISECONDS);
         } catch (InterruptedException e) {
-            this.thread.interrupt();
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
+    }
+
+    private void initConfiguration() {
+        ChangeStreamWorkerConfig changeStreamWorkerConfig = configManager.getConfigOrInit(mongoConfig.getCollectionName(), partition);
+        this.resumeToken = changeStreamWorkerConfig.getResumeToken();
+        this.configId = changeStreamWorkerConfig.getId();
     }
 }
