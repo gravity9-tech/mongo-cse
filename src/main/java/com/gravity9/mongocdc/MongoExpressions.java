@@ -31,11 +31,11 @@ class MongoExpressions {
 		return new Document("$toLong", expr);
 	}
 
-	static Bson toDateFullDocumentId() {
-		return new Document("$toDate", "$fullDocument._id");
+	static Bson toDateFullDocumentKey(String keyName) {
+		return new Document("$toDate", "$fullDocument." + keyName);
 	}
 
-	static Bson toDateDocumentKey() {
-		return new Document("$toDate", "$documentKey._id");
+	static Bson toDateDocumentKey(String keyName) {
+		return new Document("$toDate", "$documentKey." + keyName);
 	}
 }

@@ -240,6 +240,49 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         assertDoesNotThrow(manager::stop);
     }
 
+    @Test
+    void givenConfigurationWithUserDefinedKey_eachListenerShouldReceiveSeparateEvents() throws Exception {
+        var configWithUserDefinedKey = MongoConfig.builder()
+                .connectionUri(getConnectionUri())
+                .databaseName(getDatabaseName())
+                .collectionName(getTestCollectionName())
+                .keyName("testId")
+                .workerConfigCollectionName(getWorkerConfigCollectionName())
+                .clusterConfigCollectionName(getClusterConfigCollectionName())
+                .numberOfPartitions(3)
+                .fullDocument(FullDocument.UPDATE_LOOKUP)
+                .build();
+        MongoCDCManager manager = new MongoCDCManager(configWithUserDefinedKey);
+
+        TestChangeStreamListener listener0 = new TestChangeStreamListener();
+        TestChangeStreamListener listener1 = new TestChangeStreamListener();
+        TestChangeStreamListener listener2 = new TestChangeStreamListener();
+        manager.registerListener(listener0, List.of(0));
+        manager.registerListener(listener1, List.of(1));
+        manager.registerListener(listener2, List.of(2));
+        manager.start();
+
+        insertDocumentsWithTestIdToAllPartitions();
+
+        // Wait for CDC event to arrive
+        Thread.sleep(500);
+
+        List<ChangeStreamDocument<Document>> events0 = listener0.getEvents();
+        assertEquals(1, events0.size());
+        assertEquals(OperationType.INSERT, events0.get(0).getOperationType());
+        assertEquals(0, events0.get(0).getFullDocument().getInteger("testValue"));
+
+        List<ChangeStreamDocument<Document>> events1 = listener1.getEvents();
+        assertEquals(1, events1.size());
+        assertEquals(OperationType.INSERT, events1.get(0).getOperationType());
+        assertEquals(1, events1.get(0).getFullDocument().getInteger("testValue"));
+
+        List<ChangeStreamDocument<Document>> events2 = listener2.getEvents();
+        assertEquals(1, events2.size());
+        assertEquals(OperationType.INSERT, events2.get(0).getOperationType());
+        assertEquals(2, events2.get(0).getFullDocument().getInteger("testValue"));
+    }
+
     private int insertDocumentsToAllPartitions() {
         Document testDoc0 = new Document(Map.of(
                 "_id", new ObjectId(TestIds.MOD_0_ID),
@@ -251,6 +294,24 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         ));
         Document testDoc2 = new Document(Map.of(
                 "_id", new ObjectId(TestIds.MOD_2_ID),
+                "testValue", 2
+        ));
+        var documentsToInsert = List.of(testDoc0, testDoc1, testDoc2);
+        var result = collection.insertMany(documentsToInsert);
+        return result.getInsertedIds().size();
+    }
+
+    private int insertDocumentsWithTestIdToAllPartitions() {
+        Document testDoc0 = new Document(Map.of(
+                "testId", new ObjectId(TestIds.MOD_0_ID),
+                "testValue", 0
+        ));
+        Document testDoc1 = new Document(Map.of(
+                "testId", new ObjectId(TestIds.MOD_1_ID),
+                "testValue", 1
+        ));
+        Document testDoc2 = new Document(Map.of(
+                "testId", new ObjectId(TestIds.MOD_2_ID),
                 "testValue", 2
         ));
         var documentsToInsert = List.of(testDoc0, testDoc1, testDoc2);
