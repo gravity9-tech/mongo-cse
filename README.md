@@ -127,6 +127,9 @@ Version 1.0.0 enables you, however, to handle change streams from different coll
 
 ### MongoDB versions
 
+To use this library your MongoDB instance must support change streams, which are available for replica sets and sharded clusters.
+See [Change streams availability](https://www.mongodb.com/docs/manual/changeStreams/#availability).
+
 This library was tested with the following MongoDB versions but should be working with all higher ones too:
 
 * 4.4
