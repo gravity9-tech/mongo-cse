@@ -153,7 +153,7 @@ class MongoChangeStreamWorker implements Runnable {
                 var resumeTokenOpt = readResumeToken(resumeTokenDoc);
                 if (resumeTokenOpt.isPresent()) {
                     resumeToken = resumeTokenOpt.get();
-                    log.info("Updating resume token for partition " + partition + ", resumeToken: " + resumeToken);
+                    log.trace("Updating resume token for partition {}, resumeToken: {}", partition, resumeToken);
                     configManager.updateResumeToken(configId, resumeToken);
                     watch.resumeAfter(resumeTokenDoc);
                 }
