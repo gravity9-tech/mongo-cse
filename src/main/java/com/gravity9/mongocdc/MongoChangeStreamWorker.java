@@ -1,6 +1,7 @@
 package com.gravity9.mongocdc;
 
 import com.gravity9.mongocdc.listener.ChangeStreamListener;
+import com.gravity9.mongocdc.logging.LoggingUtil;
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -28,6 +29,7 @@ import static com.gravity9.mongocdc.MongoExpressions.or;
 import static com.gravity9.mongocdc.MongoExpressions.toDateDocumentKey;
 import static com.gravity9.mongocdc.MongoExpressions.toDateFullDocumentId;
 import static com.gravity9.mongocdc.MongoExpressions.toLong;
+import static com.gravity9.mongocdc.logging.LoggingUtil.logInContext;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
@@ -46,25 +48,28 @@ class MongoChangeStreamWorker implements Runnable {
     private final CopyOnWriteArraySet<ChangeStreamListener> listeners;
     private final CountDownLatch initializationLatch;
     private final CountDownLatch shutdownLatch;
+    private final String workerId;
     private String resumeToken;
     private ObjectId configId;
     private volatile boolean isReadingFromChangeStream = false;
 
     MongoChangeStreamWorker(MongoConfig mongoConfig,
                             ConfigManager configManager,
-                            int partition) {
+                            int partition,
+                            String managerId) {
         this.mongoConfig = mongoConfig;
         this.configManager = configManager;
         this.partition = partition;
         this.listeners = new CopyOnWriteArraySet<>();
         this.initializationLatch = new CountDownLatch(1);
         this.shutdownLatch = new CountDownLatch(1);
+        this.workerId = LoggingUtil.createWorkerId(managerId, partition);
     }
 
     public void stop() {
         this.isReadingFromChangeStream = false;
         this.awaitShutdown();
-        log.info("Worker for partition {} on collection {} stopped!", partition, mongoConfig.getCollectionName());
+        logInContext(workerId, () -> log.info("Worker for partition {} on collection {} stopped!", partition, mongoConfig.getCollectionName()));
     }
 
     public void awaitInitialization() {
@@ -73,6 +78,7 @@ class MongoChangeStreamWorker implements Runnable {
 
     @Override
     public void run() {
+        LoggingUtil.setloggingContext(workerId);
         log.info("Starting worker for partition {} on collection '{}'", partition, mongoConfig.getCollectionName());
 
         initConfiguration();
@@ -154,22 +160,23 @@ class MongoChangeStreamWorker implements Runnable {
             } finally {
                 if (!isReadingFromChangeStream) {
                     shutdownLatch.countDown();
+                    LoggingUtil.removeloggingContext();
                 }
             }
         } while (isReadingFromChangeStream);
     }
 
     void register(ChangeStreamListener listener) {
-		log.info("Registering listener {} to worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName());
+        logInContext(workerId, () -> log.info("Registering listener {} to worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName()));
 		listeners.add(listener);
 	}
 
 	public void deregister(ChangeStreamListener listener) {
         if (!hasRegisteredListener(listener)) {
-            log.warn("Listener {} is not registered for partition {}", listener, partition);
+            logInContext(workerId, () -> log.warn("Listener {} is not registered for partition {}", listener, partition));
             return;
         }
-		log.info("Unregistering listener {} from worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName());
+        logInContext(workerId, () -> log.info("Unregistering listener {} from worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName()));
 		listeners.remove(listener);
 	}
 
