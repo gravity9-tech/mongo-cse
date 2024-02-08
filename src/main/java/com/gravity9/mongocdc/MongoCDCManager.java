@@ -1,6 +1,7 @@
 package com.gravity9.mongocdc;
 
 import com.gravity9.mongocdc.listener.ChangeStreamListener;
+import com.gravity9.mongocdc.logging.LoggingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,6 +9,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import static com.gravity9.mongocdc.logging.LoggingUtil.logInContext;
 
 public class MongoCDCManager {
 
@@ -21,8 +24,11 @@ public class MongoCDCManager {
 
     private final Map<Integer, MongoChangeStreamWorker> workers;
 
+    private final String managerId;
+
     public MongoCDCManager(MongoConfig mongoConfig) {
         this.mongoConfig = mongoConfig;
+        this.managerId = LoggingUtil.createManagerId(mongoConfig);
         this.configManager = new ConfigManager(mongoConfig);
         configManager.verifyClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getNumberOfPartitions());
         this.clusterConfig = configManager.getOrInitClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getNumberOfPartitions());
@@ -37,12 +43,13 @@ public class MongoCDCManager {
 
 		var collectionName = clusterConfig.getCollection();
 		Map<Integer, MongoChangeStreamWorker> workersByPartitionMap = new HashMap<>();
-		log.info("Creating workers for {} partitions for collection {}", partitions, collectionName);
+        logInContext(managerId, () -> log.info("Creating workers for {} partitions for collection {}", partitions, collectionName));
 		for (int partition = 0; partition < partitions; partition++) {
 			workersByPartitionMap.put(partition, new MongoChangeStreamWorker(
 				mongoConfig,
 				configManager,
-				partition
+                partition,
+                managerId
 			));
 		}
 
@@ -58,17 +65,17 @@ public class MongoCDCManager {
      */
     public void start() {
         try {
-            log.info("Starting all workers for collection {}", clusterConfig.getCollection());
+            logInContext(managerId, () -> log.info("Starting all workers for collection {}", clusterConfig.getCollection()));
             workers.values().forEach(worker -> {
                 runInNewThread(worker);
                 worker.awaitInitialization();
             });
-            log.info("All workers for collection {} are now ready!", clusterConfig.getCollection());
+            logInContext(managerId, () -> log.info("All workers for collection {} are now ready!", clusterConfig.getCollection()));
         } catch (Exception ex) {
             try {
                 stop();
             } catch (Exception exception2) {
-                log.error("Stop on exception failed", exception2);
+                logInContext(managerId, () -> log.error("Stop on exception failed", exception2));
             }
             throw StartFailureException.startFailure(ex);
         }
@@ -82,9 +89,9 @@ public class MongoCDCManager {
      * @throws NullPointerException if the thread is null
      */
     public void stop() {
-        log.info("Stopping all workers for collection {}", clusterConfig.getCollection());
+        logInContext(managerId, () -> log.info("Stopping all workers for collection {}", clusterConfig.getCollection()));
         workers.values().forEach(MongoChangeStreamWorker::stop);
-        log.info("All workers for collection {} are now stopped!", clusterConfig.getCollection());
+        logInContext(managerId, () -> log.info("All workers for collection {} are now stopped!", clusterConfig.getCollection()));
     }
 
     public void registerListener(ChangeStreamListener listener, Collection<Integer> partitions) {
@@ -116,7 +123,7 @@ public class MongoCDCManager {
     private Optional<MongoChangeStreamWorker> getMongoChangeStreamWorker(ChangeStreamListener listener, Integer partition) {
         MongoChangeStreamWorker worker = workers.get(partition);
         if (worker == null) {
-            log.warn("Could not find worker for partition {} - cannot register listener {}", partition, listener);
+            logInContext(managerId, () -> log.warn("Could not find worker for partition {} - cannot register listener {}", partition, listener));
             return Optional.empty();
         }
         return Optional.of(worker);
