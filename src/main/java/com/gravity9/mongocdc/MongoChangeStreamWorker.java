@@ -78,7 +78,7 @@ class MongoChangeStreamWorker implements Runnable {
 
     @Override
     public void run() {
-        LoggingUtil.setloggingContext(workerId);
+        LoggingUtil.setLoggingContext(workerId);
         log.info("Starting worker for partition {} on collection '{}'", partition, mongoConfig.getCollectionName());
 
         initConfiguration();
@@ -160,7 +160,7 @@ class MongoChangeStreamWorker implements Runnable {
             } finally {
                 if (!isReadingFromChangeStream) {
                     shutdownLatch.countDown();
-                    LoggingUtil.removeloggingContext();
+                    LoggingUtil.removeLoggingContext();
                 }
             }
         } while (isReadingFromChangeStream);
