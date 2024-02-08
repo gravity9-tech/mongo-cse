@@ -27,7 +27,7 @@ import static com.gravity9.mongocdc.MongoExpressions.expr;
 import static com.gravity9.mongocdc.MongoExpressions.mod;
 import static com.gravity9.mongocdc.MongoExpressions.or;
 import static com.gravity9.mongocdc.MongoExpressions.toDateDocumentKey;
-import static com.gravity9.mongocdc.MongoExpressions.toDateFullDocumentId;
+import static com.gravity9.mongocdc.MongoExpressions.toDateFullDocumentKey;
 import static com.gravity9.mongocdc.MongoExpressions.toLong;
 import static com.gravity9.mongocdc.logging.LoggingUtil.logInContext;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -90,8 +90,8 @@ class MongoChangeStreamWorker implements Runnable {
         ChangeStreamIterable<Document> watch = collection.watch(List.of(
                 Aggregates.match(
                         or(List.of(
-                                partitionMatchExpression(toDateFullDocumentId(), mongoConfig.getNumberOfPartitions(), partition),
-                                partitionMatchExpression(toDateDocumentKey(), mongoConfig.getNumberOfPartitions(), partition)
+                                partitionMatchExpression(toDateFullDocumentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition),
+                                partitionMatchExpression(toDateDocumentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition)
                         ))
                 )
             ))

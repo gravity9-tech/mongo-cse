@@ -5,28 +5,31 @@ import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 
 public class MongoConfig {
 
-	private String connectionUri;
+	private final String connectionUri;
 
-	private String databaseName;
+	private final String databaseName;
 
-	private String collectionName;
+	private final String collectionName;
 
-	private int numberOfPartitions;
+	private final String keyName;
 
-	private String workerConfigCollectionName;
+	private final int numberOfPartitions;
 
-	private String clusterConfigCollectionName;
+	private final String workerConfigCollectionName;
 
-	private FullDocument fullDocument;
+	private final String clusterConfigCollectionName;
 
-	private FullDocumentBeforeChange fullDocumentBeforeChange;
+	private final FullDocument fullDocument;
 
-	private long maxAwaitTimeInMs;
+	private final FullDocumentBeforeChange fullDocumentBeforeChange;
+
+	private final long maxAwaitTimeInMs;
 
 	public MongoConfig(MongoConfigBuilder mongoConfigBuilder) {
 		this.connectionUri = mongoConfigBuilder.connectionUri;
 		this.databaseName = mongoConfigBuilder.databaseName;
 		this.collectionName = mongoConfigBuilder.collectionName;
+		this.keyName = mongoConfigBuilder.keyName;
 		this.numberOfPartitions = mongoConfigBuilder.numberOfPartitions;
 		this.workerConfigCollectionName = mongoConfigBuilder.workerConfigCollectionName;
 		this.clusterConfigCollectionName = mongoConfigBuilder.clusterConfigCollectionName;
@@ -49,6 +52,10 @@ public class MongoConfig {
 
 	public String getCollectionName() {
 		return collectionName;
+	}
+
+	public String getKeyName() {
+		return keyName;
 	}
 
 	public int getNumberOfPartitions() {
@@ -83,6 +90,8 @@ public class MongoConfig {
 
 		private String collectionName;
 
+		private String keyName = "_id";
+
 		private int numberOfPartitions;
 
 		private String workerConfigCollectionName = "changeStreamWorkerConfig";
@@ -108,6 +117,11 @@ public class MongoConfig {
 
 		public MongoConfigBuilder collectionName(String collectionName) {
 			this.collectionName = collectionName;
+			return this;
+		}
+
+		public MongoConfigBuilder keyName(String keyName) {
+			this.keyName = keyName;
 			return this;
 		}
 
