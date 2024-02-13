@@ -20,12 +20,6 @@ public final class LoggingUtil {
         return managerId + "_partition_" + partition;
     }
 
-    public static void logInContext(String contextId, Runnable logAction) {
-        MDC.put(MDC_KEY_NAME, contextId);
-        logAction.run();
-        MDC.remove(MDC_KEY_NAME);
-    }
-
     public static void setLoggingContext(String contextId) {
         MDC.put(MDC_KEY_NAME, contextId);
     }

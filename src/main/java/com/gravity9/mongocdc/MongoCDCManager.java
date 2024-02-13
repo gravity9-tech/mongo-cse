@@ -10,8 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.gravity9.mongocdc.logging.LoggingUtil.logInContext;
-
 public class MongoCDCManager {
 
     private static final Logger log = LoggerFactory.getLogger(MongoCDCManager.class);
@@ -43,7 +41,7 @@ public class MongoCDCManager {
 
 		var collectionName = clusterConfig.getCollection();
 		Map<Integer, MongoChangeStreamWorker> workersByPartitionMap = new HashMap<>();
-        logInContext(managerId, () -> log.info("Creating workers for {} partitions for collection {}", partitions, collectionName));
+        log.info("{} - Creating workers for {} partitions for collection {}", managerId, partitions, collectionName);
 		for (int partition = 0; partition < partitions; partition++) {
 			workersByPartitionMap.put(partition, new MongoChangeStreamWorker(
 				mongoConfig,
@@ -65,17 +63,17 @@ public class MongoCDCManager {
      */
     public void start() {
         try {
-            logInContext(managerId, () -> log.info("Starting all workers for collection {}", clusterConfig.getCollection()));
+            log.info("{} - Starting all workers for collection {}", managerId, clusterConfig.getCollection());
             workers.values().forEach(worker -> {
                 runInNewThread(worker);
                 worker.awaitInitialization();
             });
-            logInContext(managerId, () -> log.info("All workers for collection {} are now ready!", clusterConfig.getCollection()));
+            log.info("{} - All workers for collection {} are now ready!", managerId, clusterConfig.getCollection());
         } catch (Exception ex) {
             try {
                 stop();
             } catch (Exception exception2) {
-                logInContext(managerId, () -> log.error("Stop on exception failed", exception2));
+                log.error(managerId + " - Stop on exception failed", exception2);
             }
             throw StartFailureException.startFailure(ex);
         }
@@ -89,9 +87,9 @@ public class MongoCDCManager {
      * @throws NullPointerException if the thread is null
      */
     public void stop() {
-        logInContext(managerId, () -> log.info("Stopping all workers for collection {}", clusterConfig.getCollection()));
+        log.info("{} - Stopping all workers for collection {}", managerId, clusterConfig.getCollection());
         workers.values().forEach(MongoChangeStreamWorker::stop);
-        logInContext(managerId, () -> log.info("All workers for collection {} are now stopped!", clusterConfig.getCollection()));
+        log.info("{} - All workers for collection {} are now stopped!", managerId, clusterConfig.getCollection());
     }
 
     public void registerListener(ChangeStreamListener listener, Collection<Integer> partitions) {
@@ -123,7 +121,7 @@ public class MongoCDCManager {
     private Optional<MongoChangeStreamWorker> getMongoChangeStreamWorker(ChangeStreamListener listener, Integer partition) {
         MongoChangeStreamWorker worker = workers.get(partition);
         if (worker == null) {
-            logInContext(managerId, () -> log.warn("Could not find worker for partition {} - cannot register listener {}", partition, listener));
+            log.warn("{} - Could not find worker for partition {} - cannot register listener {}", managerId, partition, listener);
             return Optional.empty();
         }
         return Optional.of(worker);
