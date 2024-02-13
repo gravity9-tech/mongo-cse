@@ -73,7 +73,7 @@ public class MongoCDCManager {
             try {
                 stop();
             } catch (Exception exception2) {
-                log.error(managerId + " - Stop on exception failed", exception2);
+                log.error("{} - Stop on exception failed", managerId, exception2);
             }
             throw StartFailureException.startFailure(ex);
         }
