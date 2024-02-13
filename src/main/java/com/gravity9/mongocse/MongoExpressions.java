@@ -1,4 +1,4 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
 import java.util.List;
 import org.bson.Document;

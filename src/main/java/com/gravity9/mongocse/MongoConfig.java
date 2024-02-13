@@ -1,4 +1,4 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;

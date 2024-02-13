@@ -1,7 +1,7 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
-import com.gravity9.mongocdc.listener.ChangeStreamListener;
-import com.gravity9.mongocdc.logging.LoggingUtil;
+import com.gravity9.mongocse.listener.ChangeStreamListener;
+import com.gravity9.mongocse.logging.LoggingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,9 +10,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class MongoCDCManager {
+public class MongoCSEManager {
 
-    private static final Logger log = LoggerFactory.getLogger(MongoCDCManager.class);
+    private static final Logger log = LoggerFactory.getLogger(MongoCSEManager.class);
 
     private final ConfigManager configManager;
 
@@ -24,7 +24,7 @@ public class MongoCDCManager {
 
     private final String managerId;
 
-    public MongoCDCManager(MongoConfig mongoConfig) {
+    public MongoCSEManager(MongoConfig mongoConfig) {
         this.mongoConfig = mongoConfig;
         this.managerId = LoggingUtil.createManagerId(mongoConfig);
         this.configManager = new ConfigManager(mongoConfig);
@@ -55,7 +55,7 @@ public class MongoCDCManager {
 	}
 
     /**
-     * Starts all workers for the specified collection in the MongoDB change data capture (CDC) manager.
+     * Starts all workers for the specified collection in the MongoDB change stream enhancer (CSE) manager.
      * The workers will begin listening for change events and processing them accordingly.
      * This method blocks until all workers are initialized and ready to process change events.
      *
@@ -80,7 +80,7 @@ public class MongoCDCManager {
     }
 
     /**
-     * Stops all workers for the specified collection in the MongoDB change data capture (CDC) manager.
+     * Stops all workers for the specified collection in the MongoDB change stream enhancer (CSE) manager.
      * This method stops the workers from listening for change events and processing them.
      * It also sets the thread reference to null, indicating that the worker has been stopped.
      *

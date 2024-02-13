@@ -21,7 +21,7 @@ It's a `$match` aggregation:
 In order to use this library you need to do 2 things:
 
 1. Create MongoConfig
-2. Create the MongoCDCManager
+2. Create the MongoCSEManager
 3. Create and register your listeners by implementing the `ChangeStreamListener` interface
 4. Start the workers and begin listening to events
 
@@ -65,7 +65,7 @@ MongoConfig mongoConfig = MongoConfig.builder()
 		.build();
 
 // Create manager and configs
-MongoCDCManager manager = new MongoCDCManager(URI, DB_NAME, COLL_NAME, 3);
+MongoCSEManager manager = new MongoCSEManager(URI, DB_NAME, COLL_NAME, 3);
 
 // Create listener dedicated to partitions 0 and 1
 MyChangeStreamListener myListener = new MyChangeStreamListener();
@@ -125,7 +125,7 @@ This means that the MongoDB user needs to be able to create collections (or writ
 
 As of version 1.0.0 it is not yet possible to spread partitions across multiple JVMs. However, such a feature is planned for future releases.
 
-Version 1.0.0 enables you, however, to handle change streams from different collections on different JVMs as MongoCDCManager's created for different collections are completely independent.
+Version 1.0.0 enables you, however, to handle change streams from different collections on different JVMs as MongoCSEManager's created for different collections are completely independent.
 
 ### MongoDB versions
 

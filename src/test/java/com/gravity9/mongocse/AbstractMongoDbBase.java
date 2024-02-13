@@ -1,6 +1,6 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
-import com.gravity9.mongocdc.listener.TestChangeStreamListener;
+import com.gravity9.mongocse.listener.TestChangeStreamListener;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;

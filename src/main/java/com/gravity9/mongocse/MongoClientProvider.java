@@ -1,4 +1,4 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
