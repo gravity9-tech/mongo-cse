@@ -55,7 +55,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
     @Test
     void givenProperConfiguration_shouldStartManagerAndRegisterListener() throws Exception {
-        MongoCSEManager manager = new MongoCSEManager(mongoConfig);
+        MongoCseManager manager = new MongoCseManager(mongoConfig);
 
         TestChangeStreamListener listener = new TestChangeStreamListener();
         manager.registerListenerToAllPartitions(listener);
@@ -78,7 +78,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
     @Test
     void listenerReceivesAllBasicOpTypes() throws Exception {
-        MongoCSEManager manager = new MongoCSEManager(mongoConfig);
+        MongoCseManager manager = new MongoCseManager(mongoConfig);
 
         TestChangeStreamListener listener = new TestChangeStreamListener();
         manager.registerListenerToAllPartitions(listener);
@@ -117,7 +117,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
     @Test
     void givenMultipleListeners_eachShouldReceiveSeparateEvents() throws Exception {
-        MongoCSEManager manager = new MongoCSEManager(mongoConfig);
+        MongoCseManager manager = new MongoCseManager(mongoConfig);
 
         TestChangeStreamListener listener0 = new TestChangeStreamListener();
         TestChangeStreamListener listener1 = new TestChangeStreamListener();
@@ -150,7 +150,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
     @Test
     void shouldNotHandleEventsWhenListenerIsDeregisteredFromAllPartitions() throws Exception {
-        MongoCSEManager manager = new MongoCSEManager(mongoConfig);
+        MongoCseManager manager = new MongoCseManager(mongoConfig);
 
         TestChangeStreamListener listener0 = new TestChangeStreamListener();
         manager.registerListenerToAllPartitions(listener0);
@@ -185,7 +185,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
     @Test
     void shouldNotHandleEventsFromSelectedPartitionWhenListenerIsDeregisteredFromThisPartition() throws Exception {
-        MongoCSEManager manager = new MongoCSEManager(mongoConfig);
+        MongoCseManager manager = new MongoCseManager(mongoConfig);
 
         TestChangeStreamListener listener0 = new TestChangeStreamListener();
         manager.registerListenerToAllPartitions(listener0);
@@ -222,7 +222,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
     @Test
     void shouldGracefullyStopAllRegisteredListeners() throws Exception {
-        MongoCSEManager manager = new MongoCSEManager(mongoConfig);
+        MongoCseManager manager = new MongoCseManager(mongoConfig);
 
         TestChangeStreamListener listener0 = new TestChangeStreamListener();
         TestChangeStreamListener listener1 = new TestChangeStreamListener();
@@ -252,7 +252,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
                 .numberOfPartitions(3)
                 .fullDocument(FullDocument.UPDATE_LOOKUP)
                 .build();
-        MongoCSEManager manager = new MongoCSEManager(configWithUserDefinedKey);
+        MongoCseManager manager = new MongoCseManager(configWithUserDefinedKey);
 
         TestChangeStreamListener listener0 = new TestChangeStreamListener();
         TestChangeStreamListener listener1 = new TestChangeStreamListener();

@@ -28,8 +28,8 @@ public class ConfigManagerTest extends AbstractMongoDbBase {
 		var mongoConfig = mongoConfigBuilder
 				.numberOfPartitions(partitions)
 				.build();
-		new MongoCSEManager(mongoConfig);
-		assertDoesNotThrow(() -> new MongoCSEManager(mongoConfig));
+		new MongoCseManager(mongoConfig);
+		assertDoesNotThrow(() -> new MongoCseManager(mongoConfig));
 
 		WorkerClusterConfig config = new ConfigManager(mongoConfig).getOrInitClusterConfig(getTestCollectionName(), partitions);
 		assertEquals(getTestCollectionName(), config.getCollection());
@@ -44,7 +44,7 @@ public class ConfigManagerTest extends AbstractMongoDbBase {
 		var secondConfig = mongoConfigBuilder
 				.numberOfPartitions(1)
 				.build();
-		new MongoCSEManager(firstConfig);
-		assertThrows(IllegalArgumentException.class, () -> new MongoCSEManager(secondConfig));
+		new MongoCseManager(firstConfig);
+		assertThrows(IllegalArgumentException.class, () -> new MongoCseManager(secondConfig));
 	}
 }

@@ -10,9 +10,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class MongoCSEManager {
+public class MongoCseManager {
 
-    private static final Logger log = LoggerFactory.getLogger(MongoCSEManager.class);
+    private static final Logger log = LoggerFactory.getLogger(MongoCseManager.class);
 
     private final ConfigManager configManager;
 
@@ -24,7 +24,7 @@ public class MongoCSEManager {
 
     private final String managerId;
 
-    public MongoCSEManager(MongoConfig mongoConfig) {
+    public MongoCseManager(MongoConfig mongoConfig) {
         this.mongoConfig = mongoConfig;
         this.managerId = LoggingUtil.createManagerId(mongoConfig);
         this.configManager = new ConfigManager(mongoConfig);
