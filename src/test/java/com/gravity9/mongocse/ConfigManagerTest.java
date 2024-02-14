@@ -1,4 +1,4 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +28,8 @@ public class ConfigManagerTest extends AbstractMongoDbBase {
 		var mongoConfig = mongoConfigBuilder
 				.numberOfPartitions(partitions)
 				.build();
-		new MongoCDCManager(mongoConfig);
-		assertDoesNotThrow(() -> new MongoCDCManager(mongoConfig));
+		new MongoCseManager(mongoConfig);
+		assertDoesNotThrow(() -> new MongoCseManager(mongoConfig));
 
 		WorkerClusterConfig config = new ConfigManager(mongoConfig).getOrInitClusterConfig(getTestCollectionName(), partitions);
 		assertEquals(getTestCollectionName(), config.getCollection());
@@ -44,7 +44,7 @@ public class ConfigManagerTest extends AbstractMongoDbBase {
 		var secondConfig = mongoConfigBuilder
 				.numberOfPartitions(1)
 				.build();
-		new MongoCDCManager(firstConfig);
-		assertThrows(IllegalArgumentException.class, () -> new MongoCDCManager(secondConfig));
+		new MongoCseManager(firstConfig);
+		assertThrows(IllegalArgumentException.class, () -> new MongoCseManager(secondConfig));
 	}
 }

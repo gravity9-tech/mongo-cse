@@ -1,7 +1,7 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
-import com.gravity9.mongocdc.listener.ChangeStreamListener;
-import com.gravity9.mongocdc.logging.LoggingUtil;
+import com.gravity9.mongocse.listener.ChangeStreamListener;
+import com.gravity9.mongocse.logging.LoggingUtil;
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -21,14 +21,14 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 
-import static com.gravity9.mongocdc.MongoExpressions.divide;
-import static com.gravity9.mongocdc.MongoExpressions.eq;
-import static com.gravity9.mongocdc.MongoExpressions.expr;
-import static com.gravity9.mongocdc.MongoExpressions.mod;
-import static com.gravity9.mongocdc.MongoExpressions.or;
-import static com.gravity9.mongocdc.MongoExpressions.toDateDocumentKey;
-import static com.gravity9.mongocdc.MongoExpressions.toDateFullDocumentKey;
-import static com.gravity9.mongocdc.MongoExpressions.toLong;
+import static com.gravity9.mongocse.MongoExpressions.divide;
+import static com.gravity9.mongocse.MongoExpressions.eq;
+import static com.gravity9.mongocse.MongoExpressions.expr;
+import static com.gravity9.mongocse.MongoExpressions.mod;
+import static com.gravity9.mongocse.MongoExpressions.or;
+import static com.gravity9.mongocse.MongoExpressions.toDateDocumentKey;
+import static com.gravity9.mongocse.MongoExpressions.toDateFullDocumentKey;
+import static com.gravity9.mongocse.MongoExpressions.toLong;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 

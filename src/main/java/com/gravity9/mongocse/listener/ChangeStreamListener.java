@@ -1,4 +1,4 @@
-package com.gravity9.mongocdc.listener;
+package com.gravity9.mongocse.listener;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import org.bson.Document;

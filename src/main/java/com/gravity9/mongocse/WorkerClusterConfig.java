@@ -1,4 +1,4 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
 import org.bson.types.ObjectId;
 

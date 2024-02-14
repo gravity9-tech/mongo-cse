@@ -1,4 +1,4 @@
-package com.gravity9.mongocdc.constants;
+package com.gravity9.mongocse.constants;
 
 public class TestIds {
 

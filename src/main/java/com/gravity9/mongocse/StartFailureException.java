@@ -1,6 +1,6 @@
-package com.gravity9.mongocdc;
+package com.gravity9.mongocse;
 
-public class StartFailureException extends BaseMongoCDCException {
+public class StartFailureException extends BaseMongoCseException {
     public StartFailureException(String message, Throwable cause) {
         super(message, cause);
     }
