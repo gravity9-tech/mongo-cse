@@ -29,7 +29,6 @@ import static com.gravity9.mongocdc.MongoExpressions.or;
 import static com.gravity9.mongocdc.MongoExpressions.toDateDocumentKey;
 import static com.gravity9.mongocdc.MongoExpressions.toDateFullDocumentKey;
 import static com.gravity9.mongocdc.MongoExpressions.toLong;
-import static com.gravity9.mongocdc.logging.LoggingUtil.logInContext;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
@@ -69,7 +68,7 @@ class MongoChangeStreamWorker implements Runnable {
     public void stop() {
         this.isReadingFromChangeStream = false;
         this.awaitShutdown();
-        logInContext(workerId, () -> log.info("Worker for partition {} on collection {} stopped!", partition, mongoConfig.getCollectionName()));
+        log.info("{} - Worker for partition {} on collection {} stopped!", workerId, partition, mongoConfig.getCollectionName());
     }
 
     public void awaitInitialization() {
@@ -167,16 +166,16 @@ class MongoChangeStreamWorker implements Runnable {
     }
 
     void register(ChangeStreamListener listener) {
-        logInContext(workerId, () -> log.info("Registering listener {} to worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName()));
+        log.info("{} - Registering listener {} to worker on partition {} for collection {}", workerId, listener, partition, mongoConfig.getCollectionName());
 		listeners.add(listener);
 	}
 
 	public void deregister(ChangeStreamListener listener) {
         if (!hasRegisteredListener(listener)) {
-            logInContext(workerId, () -> log.warn("Listener {} is not registered for partition {}", listener, partition));
+            log.warn("{} - Listener {} is not registered for partition {}", workerId, listener, partition);
             return;
         }
-        logInContext(workerId, () -> log.info("Unregistering listener {} from worker on partition {} for collection {}", listener, partition, mongoConfig.getCollectionName()));
+        log.info("{} - Unregistering listener {} from worker on partition {} for collection {}", workerId, listener, partition, mongoConfig.getCollectionName());
 		listeners.remove(listener);
 	}
 
