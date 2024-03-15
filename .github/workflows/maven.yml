@@ -46,3 +46,8 @@ jobs:
       with:
         name: dependency-check-report
         path: target/dependency-check-report.html
+    - name: Archive code coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: jacoco-coverage-report
+        path: target/site/jacoco/
