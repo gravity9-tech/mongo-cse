@@ -1,7 +1,6 @@
 package com.gravity9.mongocse;
 
 import com.gravity9.mongocse.listener.TestChangeStreamListener;
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
@@ -18,10 +17,10 @@ public abstract class AbstractMongoDbBase {
 
     private static final MongoDBContainer MONGO_DB_CONTAINER =
             new MongoDBContainer("mongo:4.2.8");
+    protected static MongoClientProvider CLIENT_PROVIDER;
     private static final String COLL_NAME = "testCollection";
     private static final String DB_NAME = "test";
 
-    private MongoClient mongoClient;
     private MongoDatabase mongoDatabase;
 
     protected String getConnectionUri() {
@@ -36,6 +35,10 @@ public abstract class AbstractMongoDbBase {
         return DB_NAME;
     }
 
+    protected MongoClientProvider getClientProvider() {
+        return CLIENT_PROVIDER;
+    }
+
     protected String getWorkerConfigCollectionName() {
         return "changeStreamWorkerConfig";
     }
@@ -47,19 +50,20 @@ public abstract class AbstractMongoDbBase {
     @BeforeAll
     public static void setUpAll() {
         MONGO_DB_CONTAINER.start();
+        CLIENT_PROVIDER = new MongoClientProvider(MONGO_DB_CONTAINER.getReplicaSetUrl());
     }
 
     @AfterAll
     public static void tearDownAll() {
         if (!MONGO_DB_CONTAINER.isShouldBeReused()) {
             MONGO_DB_CONTAINER.stop();
+            CLIENT_PROVIDER.close();
         }
     }
 
     @BeforeEach
     public void setup() {
-        mongoClient = MongoClientProvider.createClient(getConnectionUri());
-        mongoDatabase = mongoClient.getDatabase(getDatabaseName());
+        mongoDatabase = CLIENT_PROVIDER.getClient().getDatabase(getDatabaseName());
     }
 
     @AfterEach

@@ -5,12 +5,14 @@ import com.gravity9.mongocse.logging.LoggingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class MongoCseManager {
+public class MongoCseManager implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(MongoCseManager.class);
 
@@ -24,10 +26,13 @@ public class MongoCseManager {
 
     private final String managerId;
 
+    private final MongoClientProvider clientProvider;
+
     public MongoCseManager(MongoConfig mongoConfig) {
         this.mongoConfig = mongoConfig;
         this.managerId = LoggingUtil.createManagerId(mongoConfig);
-        this.configManager = new ConfigManager(mongoConfig);
+        this.clientProvider = new MongoClientProvider(mongoConfig.getConnectionUri());
+        this.configManager = new ConfigManager(mongoConfig, this.clientProvider);
         configManager.verifyClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getNumberOfPartitions());
         this.clusterConfig = configManager.getOrInitClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getNumberOfPartitions());
         this.workers = createWorkers();
@@ -39,20 +44,21 @@ public class MongoCseManager {
             throw new IllegalArgumentException("Cannot initialize with less than 1 partition!");
         }
 
-		var collectionName = clusterConfig.getCollection();
-		Map<Integer, MongoChangeStreamWorker> workersByPartitionMap = new HashMap<>();
+        var collectionName = clusterConfig.getCollection();
+        Map<Integer, MongoChangeStreamWorker> workersByPartitionMap = new HashMap<>();
         log.info("{} - Creating workers for {} partitions for collection {}", managerId, partitions, collectionName);
-		for (int partition = 0; partition < partitions; partition++) {
-			workersByPartitionMap.put(partition, new MongoChangeStreamWorker(
-				mongoConfig,
-				configManager,
-                partition,
-                managerId
-			));
-		}
+        for (int partition = 0; partition < partitions; partition++) {
+            workersByPartitionMap.put(partition, new MongoChangeStreamWorker(
+                    mongoConfig,
+                    configManager,
+                    partition,
+                    managerId,
+                    clientProvider
+            ));
+        }
 
-		return workersByPartitionMap;
-	}
+        return workersByPartitionMap;
+    }
 
     /**
      * Starts all workers for the specified collection in the MongoDB change stream enhancer (CSE) manager.
@@ -130,5 +136,10 @@ public class MongoCseManager {
     private void runInNewThread(MongoChangeStreamWorker worker) {
         Thread thread = new Thread(worker);
         thread.start();
+    }
+
+    @Override
+    public void close() throws IOException {
+        clientProvider.close();
     }
 }

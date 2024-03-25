@@ -1,10 +1,10 @@
 package com.gravity9.mongocse;
 
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
+
 import java.util.List;
 import java.util.Optional;
 import org.bson.types.ObjectId;
@@ -19,9 +19,8 @@ class ConfigManager {
 
 	private final MongoCollection<WorkerClusterConfig> clusterConfigCollection;
 
-	ConfigManager(MongoConfig mongoConfig) {
-		MongoClient client = MongoClientProvider.createClient(mongoConfig.getConnectionUri());
-		MongoDatabase db = client.getDatabase(mongoConfig.getDatabaseName());
+	ConfigManager(MongoConfig mongoConfig, MongoClientProvider clientProvider) {
+		MongoDatabase db = clientProvider.getClient().getDatabase(mongoConfig.getDatabaseName());
 		workerConfigCollection = db.getCollection(mongoConfig.getWorkerConfigCollectionName(), ChangeStreamWorkerConfig.class);
 		clusterConfigCollection = db.getCollection(mongoConfig.getClusterConfigCollectionName(), WorkerClusterConfig.class);
 	}

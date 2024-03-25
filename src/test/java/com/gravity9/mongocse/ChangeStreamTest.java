@@ -45,7 +45,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
                 .numberOfPartitions(3)
                 .fullDocument(FullDocument.UPDATE_LOOKUP)
                 .build();
-        collection = MongoClientProvider.createClient(getConnectionUri()).getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
+        collection = CLIENT_PROVIDER.getClient().getDatabase(getDatabaseName()).getCollection(getTestCollectionName());
     }
 
     @AfterEach
