@@ -31,7 +31,7 @@ public class MongoCseManager implements Closeable {
     public MongoCseManager(MongoConfig mongoConfig) {
         this.mongoConfig = mongoConfig;
         this.managerId = LoggingUtil.createManagerId(mongoConfig);
-        this.clientProvider = new MongoClientProvider(mongoConfig.getConnectionUri());
+        this.clientProvider = new DefaultMongoClientProvider(mongoConfig.getConnectionUri());
         this.configManager = new ConfigManager(mongoConfig, this.clientProvider);
         configManager.verifyClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getNumberOfPartitions());
         this.clusterConfig = configManager.getOrInitClusterConfig(mongoConfig.getCollectionName(), mongoConfig.getNumberOfPartitions());
@@ -140,6 +140,6 @@ public class MongoCseManager implements Closeable {
 
     @Override
     public void close() throws IOException {
-        clientProvider.close();
+            clientProvider.close();
     }
 }

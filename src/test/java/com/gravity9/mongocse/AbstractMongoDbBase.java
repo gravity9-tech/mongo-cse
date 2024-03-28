@@ -17,7 +17,7 @@ public abstract class AbstractMongoDbBase {
 
     private static final MongoDBContainer MONGO_DB_CONTAINER =
             new MongoDBContainer("mongo:4.2.8");
-    protected static MongoClientProvider CLIENT_PROVIDER;
+    protected static DefaultMongoClientProvider CLIENT_PROVIDER;
     private static final String COLL_NAME = "testCollection";
     private static final String DB_NAME = "test";
 
@@ -35,7 +35,7 @@ public abstract class AbstractMongoDbBase {
         return DB_NAME;
     }
 
-    protected MongoClientProvider getClientProvider() {
+    protected DefaultMongoClientProvider getClientProvider() {
         return CLIENT_PROVIDER;
     }
 
@@ -50,7 +50,7 @@ public abstract class AbstractMongoDbBase {
     @BeforeAll
     public static void setUpAll() {
         MONGO_DB_CONTAINER.start();
-        CLIENT_PROVIDER = new MongoClientProvider(MONGO_DB_CONTAINER.getReplicaSetUrl());
+        CLIENT_PROVIDER = new DefaultMongoClientProvider(MONGO_DB_CONTAINER.getReplicaSetUrl());
     }
 
     @AfterAll
