@@ -15,7 +15,7 @@ This allows us to direct all events connected to the same document to the same p
 
 It's a `$match` aggregation:
 
-`{"$expr": {"$eq": [{"$mod": [{"$divide": [{"$toLong": {"$toDate": "$_id"}}, 1000]}, $NUMBER_OF_PARTITIONS]}, $PARTITION_ID]}}`
+`{"$expr": {"$eq": [{"$cond": ["$_id", {"$mod": [{"$abs": {"$toHashedIndexKey": "$_id"}}, $NUMBER_OF_PARTITIONS]}, -1]}, $PARTITION_ID]}}`
 ## How to use it?
 
 In order to use this library you need to do 2 things:

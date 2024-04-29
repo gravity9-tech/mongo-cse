@@ -1,12 +1,13 @@
 package com.gravity9.mongocse;
 
 import java.util.List;
+
+import org.bson.BsonString;
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
 class MongoExpressions {
-
-	private static final Integer TO_MILLIS = 1000;
 
 	static Bson expr(Bson expr) {
 		return new Document("$expr", expr);
@@ -23,19 +24,23 @@ class MongoExpressions {
 		return new Document("$mod", List.of(expr, value));
 	}
 
-	static Bson divide(Bson expr) {
-		return new Document("$divide", List.of(expr, TO_MILLIS));
+	static BsonString fullDocumentKey(String keyName) {
+		return new BsonString("$fullDocument." + keyName);
 	}
 
-	static Bson toLong(Bson expr) {
-		return new Document("$toLong", expr);
+	static BsonString documentKey(String keyName) {
+		return new BsonString("$documentKey." + keyName);
 	}
 
-	static Bson toDateFullDocumentKey(String keyName) {
-		return new Document("$toDate", "$fullDocument." + keyName);
+	static Bson abs(Bson expr) {
+		return new Document("$abs", expr);
 	}
 
-	static Bson toDateDocumentKey(String keyName) {
-		return new Document("$toDate", "$documentKey." + keyName);
+	static Bson toHashedIndexKey(BsonValue expr) {
+		return new Document("$toHashedIndexKey", expr);
+	}
+
+	static Bson cond(Object ifExpr, Object thenExpr, Object elseExpr) {
+		return new Document("$cond", List.of(ifExpr, thenExpr, elseExpr));
 	}
 }
