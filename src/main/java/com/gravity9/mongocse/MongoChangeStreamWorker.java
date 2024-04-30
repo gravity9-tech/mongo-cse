@@ -10,6 +10,7 @@ import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -21,14 +22,15 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 
-import static com.gravity9.mongocse.MongoExpressions.divide;
+import static com.gravity9.mongocse.MongoExpressions.abs;
+import static com.gravity9.mongocse.MongoExpressions.cond;
+import static com.gravity9.mongocse.MongoExpressions.documentKey;
 import static com.gravity9.mongocse.MongoExpressions.eq;
 import static com.gravity9.mongocse.MongoExpressions.expr;
+import static com.gravity9.mongocse.MongoExpressions.fullDocumentKey;
 import static com.gravity9.mongocse.MongoExpressions.mod;
 import static com.gravity9.mongocse.MongoExpressions.or;
-import static com.gravity9.mongocse.MongoExpressions.toDateDocumentKey;
-import static com.gravity9.mongocse.MongoExpressions.toDateFullDocumentKey;
-import static com.gravity9.mongocse.MongoExpressions.toLong;
+import static com.gravity9.mongocse.MongoExpressions.toHashedIndexKey;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
@@ -89,8 +91,8 @@ class MongoChangeStreamWorker implements Runnable {
         ChangeStreamIterable<Document> watch = collection.watch(List.of(
                 Aggregates.match(
                         or(List.of(
-                                partitionMatchExpression(toDateFullDocumentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition),
-                                partitionMatchExpression(toDateDocumentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition)
+                                partitionMatchExpression(fullDocumentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition),
+                                partitionMatchExpression(documentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition)
                         ))
                 )
             ))
@@ -209,8 +211,8 @@ class MongoChangeStreamWorker implements Runnable {
         return document == null ? NULL_STRING : document.toJson();
     }
 
-    private Bson partitionMatchExpression(Bson documentId, int partitionNumbers, int partitionNo) {
-        return expr(eq(mod(divide(toLong(documentId)), partitionNumbers), partitionNo));
+    private Bson partitionMatchExpression(BsonValue documentKey, int partitionNumbers, int partitionNo) {
+        return expr(eq(cond(documentKey, mod(abs(toHashedIndexKey(documentKey)), partitionNumbers), NULL_STRING), partitionNo));
     }
 
     private Optional<String> readResumeToken(BsonDocument resumeTokenDoc) {
