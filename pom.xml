@@ -6,7 +6,76 @@
 
     <groupId>com.gravity9</groupId>
     <artifactId>mongo-change-stream-enhancer</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-beta</version>
+    <packaging>jar</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>This is a lightweight library that allows Java developers to scale their usage of MongoDB Change Streams. Mongo Change Stream Enhancer divides Change Stream events into partitions and enables you to handle them in separate Threads, increasing throughput. It achieves that by creating a Change Stream per each partition (number is configurable) and handling each Change Stream in a dedicated Thread.</description>
+    <url>https://github.com/gravity9-tech/mongo-cse</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Piotr Dytkowski</name>
+            <email>piotr.dytkowski@gravity9.com</email>
+            <organization>gravity9</organization>
+            <organizationUrl>https://gravity9.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Michał Koziczak</name>
+            <email>michal.koziczak@gravity9.com</email>
+            <organization>gravity9</organization>
+            <organizationUrl>https://gravity9.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Michał Szkudlarek</name>
+            <email>michal.szkudlarek@gravity9.com</email>
+            <organization>gravity9</organization>
+            <organizationUrl>https://gravity9.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Piotr Likus</name>
+            <email>piotr.likus@gravity9.com</email>
+            <organization>gravity9</organization>
+            <organizationUrl>https://gravity9.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Piotr Bugara</name>
+            <email>piotr.bugara@gravity9.com</email>
+            <organization>gravity9</organization>
+            <organizationUrl>https://gravity9.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Daniel Kucharski</name>
+            <email>daniel.kucharski@gravity9.com</email>
+            <organization>gravity9</organization>
+            <organizationUrl>https://gravity9.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Bartosz Droś</name>
+            <email>bartosz.dros@gravity9.com</email>
+            <organization>gravity9</organization>
+            <organizationUrl>https://gravity9.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Bartłomiej Styczyński</name>
+            <email>bartlomiej.styczynski@gravity9.com</email>
+            <organization>gravity9</organization>
+            <organizationUrl>https://gravity9.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/gravity9-tech/mongo-cse.git</connection>
+        <developerConnection>scm:git:ssh://github.com/gravity9-tech/mongo-cse.git</developerConnection>
+        <url>https://github.com/gravity9-tech/mongo-cse/tree/main</url>
+    </scm>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -187,10 +256,91 @@
                     </plugin>
                 </plugins>
             </build>
-
         </profile>
-
     </profiles>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Also generates checksums -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.4.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <tokenAuth>true</tokenAuth>
+                    <!--                            <autoPublish>true</autoPublish>-->
+<!--                                                <waitUntil>published</waitUntil>-->
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <reporting>
         <plugins>

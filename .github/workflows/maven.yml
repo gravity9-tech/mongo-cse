@@ -31,11 +31,10 @@ jobs:
       run: mvn -B package --file pom.xml
     - name: Run checks
       run: mvn verify
-    - name: Archive jar
+    - name: Archive jars
       uses: actions/upload-artifact@v3
       with:
-        name: mcse-jar
-        path: target/*.jar
+        path: target/*.jar*
     - name: Archive pmd
       uses: actions/upload-artifact@v3
       with:
@@ -51,3 +50,15 @@ jobs:
       with:
         name: jacoco-coverage-report
         path: target/site/jacoco/
+
+  deploy:
+#    if: github.ref == 'refs/heads/main' COMMENTED OUT FOR TESTING ONLY
+    runs-on: ubuntu-latest
+    environment: Deployment_manual
+    steps:
+    - name: Deploy to SonaType
+      run: mvn deploy --file pom.xml
+      env:
+        sonatype.username: ${{ secrets.OSSRH_USERNAME }}
+        sonatype.password: ${{ secrets.OSSRH_TOKEN }}
+        sonatype.gpg.passphrase: ${{ secrets.SIGNING_PASSWORD }}
