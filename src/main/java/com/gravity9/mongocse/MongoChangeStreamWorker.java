@@ -194,7 +194,7 @@ class MongoChangeStreamWorker implements Runnable {
             log.info("Resuming change stream for partition {} on collection {} with token: {}", partition, mongoConfig.getCollectionName(), resumeToken);
             watch.resumeAfter(buildResumeToken(resumeToken));
         } catch (MongoCommandException e) {
-            log.warn("Error while resuming with a saved token! Likely, token has expired from the opLog. Resuming fresh...", e);
+            log.warn("Error while resuming with a saved token! Likely, token has expired from the opLog. Resuming fresh... Token: {}", resumeToken, e);
         }
     }
 
