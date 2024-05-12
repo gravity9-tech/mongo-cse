@@ -15,8 +15,7 @@ import java.util.List;
 
 public abstract class AbstractMongoDbBase {
 
-    private static final MongoDBContainer MONGO_DB_CONTAINER =
-            new MongoDBContainer("mongo:4.2.8");
+    private static final MongoDBContainer MONGO_DB_CONTAINER = new MongoDBContainer("mongo:4.2.24");
     protected static DefaultMongoClientProvider CLIENT_PROVIDER;
     private static final String COLL_NAME = "testCollection";
     private static final String DB_NAME = "test";
