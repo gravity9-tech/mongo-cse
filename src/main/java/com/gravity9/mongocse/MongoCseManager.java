@@ -39,15 +39,15 @@ public class MongoCseManager implements Closeable {
     }
 
     private Map<Integer, MongoChangeStreamWorker> createWorkers() {
-        var partitions = clusterConfig.getPartitions();
-        if (partitions < 1) {
+        var partitionsSize = clusterConfig.getPartitions();
+        if (partitionsSize < 1) {
             throw new IllegalArgumentException("Cannot initialize with less than 1 partition!");
         }
 
         var collectionName = clusterConfig.getCollection();
-        Map<Integer, MongoChangeStreamWorker> workersByPartitionMap = new HashMap<>();
-        log.info("{} - Creating workers for {} partitions for collection {}", managerId, partitions, collectionName);
-        for (int partition = 0; partition < partitions; partition++) {
+        Map<Integer, MongoChangeStreamWorker> workersByPartitionMap = new HashMap<>(partitionsSize);
+        log.info("{} - Creating workers for {} partitions for collection {}", managerId, partitionsSize, collectionName);
+        for (int partition = 0; partition < partitionsSize; partition++) {
             workersByPartitionMap.put(partition, new MongoChangeStreamWorker(
                     mongoConfig,
                     configManager,

@@ -92,58 +92,17 @@ class MongoChangeStreamWorker implements Runnable {
             log.info("No resume token found for partition {} on collection {}, starting fresh", partition, mongoConfig.getCollectionName());
         }
 
-        boolean firstCursorOpen = true;
+        boolean firstCursorOpen = false;
         isReadingFromChangeStream = true;
 
         do {
             try (var cursor = watch.cursor()) {
-                if (firstCursorOpen) {
-                    firstCursorOpen = false;
-                    initializationLatch.countDown();
-                    log.info("Worker for partition {} on collection {} is now started!", partition, mongoConfig.getCollectionName());
-                }
+                firstCursorOpen = logForFirstCursorOpen(firstCursorOpen);
 
                 do {
-                    ChangeStreamDocument<Document> document = cursor.tryNext();
-                    if (document != null) {
-                        Optional<String> changedDocumentIdOpt = getChangedDocumentId(document).map(ObjectId::toHexString);
-                        String changedDocumentId = changedDocumentIdOpt.orElse("?");
-
-                        switch (document.getOperationType()) {
-                            case UPDATE:
-                                if (canLogSensitiveData()) {
-                                    var updateDescription = document.getUpdateDescription();
-                                    log.debug("UPDATE, document id: {}, changedFields: {}", changedDocumentId, updateDescription == null ? NULL_STRING : toJson(updateDescription.getUpdatedFields()));
-                                } else {
-                                    log.info("UPDATE, document id: {}", changedDocumentId);
-                                }
-                                break;
-                            case DELETE:
-                                log.info("DELETE, document id: {}", changedDocumentId);
-                                break;
-                            default:
-                                if (canLogSensitiveData()) {
-                                    log.debug("{} document: {}", document.getOperationType().name(), toJson(document.getFullDocument()));
-                                } else {
-                                    log.info("{} document id: {}", document.getOperationType().name(), changedDocumentId);
-                                }
-                        }
-
-                        listeners.forEach(listener -> listener.handle(document));
-                    } else {
-                        log.trace("No new updates found on partition {} for collection {}", partition, mongoConfig.getCollectionName());
-                    }
-
+                    processSingleDocument(cursor.tryNext());
                     // Read resumeToken even with no new results to make sure the token does not expire
-                    BsonDocument resumeTokenDoc = cursor.getResumeToken();
-                    var resumeTokenOpt = readResumeToken(resumeTokenDoc);
-                    if (resumeTokenOpt.isPresent()) {
-                        resumeToken = resumeTokenOpt.get();
-                        log.trace("Updating resume token for partition {}, resumeToken: {}", partition, resumeToken);
-                        configManager.updateResumeToken(configId, resumeToken);
-                        watch.resumeAfter(resumeTokenDoc);
-                    }
-
+                    updateResumeToken(cursor.getResumeToken(), watch);
                 } while (isReadingFromChangeStream);
             } catch (Exception ex) {
                 log.error("Exception while processing change", ex);
@@ -152,6 +111,48 @@ class MongoChangeStreamWorker implements Runnable {
 
         shutdownLatch.countDown();
         LoggingUtil.removeLoggingContext();
+    }
+
+    private void processSingleDocument(ChangeStreamDocument<Document> document) {
+        if (document != null) {
+            Optional<String> changedDocumentIdOpt = getChangedDocumentId(document).map(ObjectId::toHexString);
+            String changedDocumentId = changedDocumentIdOpt.orElse("?");
+
+            switch (document.getOperationType()) {
+                case UPDATE:
+                    if (canLogSensitiveData()) {
+                        var updateDescription = document.getUpdateDescription();
+                        log.debug("UPDATE, document id: {}, changedFields: {}", changedDocumentId, updateDescription == null ? NULL_STRING : toJson(updateDescription.getUpdatedFields()));
+                    } else {
+                        log.info("UPDATE, document id: {}", changedDocumentId);
+                    }
+                    break;
+                case DELETE:
+                    log.info("DELETE, document id: {}", changedDocumentId);
+                    break;
+                default:
+                    if (canLogSensitiveData()) {
+                        log.debug("{} document: {}", document.getOperationType().name(), toJson(document.getFullDocument()));
+                    } else {
+                        log.info("{} document id: {}", document.getOperationType().name(), changedDocumentId);
+                    }
+            }
+
+            listeners.forEach(listener -> listener.handle(document));
+        } else {
+            log.trace("No new updates found on partition {} for collection {}", partition, mongoConfig.getCollectionName());
+        }
+    }
+
+    private void updateResumeToken(BsonDocument resumeTokenDoc, ChangeStreamIterable<Document> watch) {
+        if (resumeTokenDoc != null) {
+            readResumeToken(resumeTokenDoc).ifPresent(token -> {
+                resumeToken = token;
+                log.trace("Updating resume token for partition {}, resumeToken: {}", partition, resumeToken);
+                configManager.updateResumeToken(configId, resumeToken);
+                watch.resumeAfter(resumeTokenDoc);
+            });
+        }
     }
 
     void register(ChangeStreamListener listener) {
@@ -199,9 +200,7 @@ class MongoChangeStreamWorker implements Runnable {
     }
 
     private Optional<String> readResumeToken(BsonDocument resumeTokenDoc) {
-        if (resumeTokenDoc != null
-                && resumeTokenDoc.containsKey(RESUME_TOKEN_DATA_PROPERTY)
-        ) {
+        if (resumeTokenDoc.containsKey(RESUME_TOKEN_DATA_PROPERTY)) {
             return Optional.ofNullable(resumeTokenDoc.getString(RESUME_TOKEN_DATA_PROPERTY).getValue());
         }
         return Optional.empty();
@@ -227,5 +226,14 @@ class MongoChangeStreamWorker implements Runnable {
         ChangeStreamWorkerConfig changeStreamWorkerConfig = configManager.getConfigOrInit(mongoConfig.getCollectionName(), partition);
         this.resumeToken = changeStreamWorkerConfig.getResumeToken();
         this.configId = changeStreamWorkerConfig.getId();
+    }
+
+    private boolean logForFirstCursorOpen(boolean firstCursorOpen) {
+        if (!firstCursorOpen) {
+            initializationLatch.countDown();
+            log.info("Worker for partition {} on collection {} is now started!", partition, mongoConfig.getCollectionName());
+        }
+
+        return true;
     }
 }

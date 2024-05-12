@@ -14,16 +14,20 @@ class DefaultMongoClientProvider implements MongoClientProvider {
 
 	private final String mongoConnectionUri;
 
-	private MongoClient client;
+	private volatile MongoClient client;
 
-    DefaultMongoClientProvider(String mongoConnectionUri) {
-        this.mongoConnectionUri = mongoConnectionUri;
-    }
+	DefaultMongoClientProvider(String mongoConnectionUri) {
+		this.mongoConnectionUri = mongoConnectionUri;
+	}
 
 	@Override
-    public MongoClient getClient() {
+	public MongoClient getClient() {
 		if (client == null) {
-			client = createClient();
+			synchronized (this) {
+				if (client == null) {
+					client = createClient();
+				}
+			}
 		}
 
 		return client;
@@ -33,11 +37,11 @@ class DefaultMongoClientProvider implements MongoClientProvider {
 		ConnectionString connectionString = new ConnectionString(mongoConnectionUri);
 		CodecRegistry pojoCodecRegistry = fromProviders(PojoCodecProvider.builder().automatic(true).build());
 		CodecRegistry codecRegistry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(),
-			pojoCodecRegistry);
+				pojoCodecRegistry);
 		MongoClientSettings clientSettings = MongoClientSettings.builder()
-			.applyConnectionString(connectionString)
-			.codecRegistry(codecRegistry)
-			.build();
+				.applyConnectionString(connectionString)
+				.codecRegistry(codecRegistry)
+				.build();
 
 		return MongoClients.create(clientSettings);
 	}
@@ -45,8 +49,13 @@ class DefaultMongoClientProvider implements MongoClientProvider {
 	@Override
 	public void close() {
 		if (client != null) {
-			client.close();
-			client = null;
+			synchronized (this) {
+				if (client != null) {
+					client.close();
+					client = null;
+				}
+			}
 		}
 	}
 }
+
