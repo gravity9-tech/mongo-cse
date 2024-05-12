@@ -1,5 +1,6 @@
 package com.gravity9.mongocse;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,7 @@ public class ConfigManagerTest extends AbstractMongoDbBase {
 		new MongoCseManager(mongoConfig);
 		assertDoesNotThrow(() -> new MongoCseManager(mongoConfig));
 
-		WorkerClusterConfig config = new ConfigManager(mongoConfig).getOrInitClusterConfig(getTestCollectionName(), partitions);
+		WorkerClusterConfig config = new ConfigManager(mongoConfig, CLIENT_PROVIDER).getOrInitClusterConfig(getTestCollectionName(), partitions);
 		assertEquals(getTestCollectionName(), config.getCollection());
 		assertEquals(partitions, config.getPartitions());
 	}
