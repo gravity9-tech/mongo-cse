@@ -285,7 +285,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
 
     @Test
     void givenConfigurationWithMatchStage_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
-        Bson match = Filters.lt("fullDocument.testValue", 2);
+        Bson match = Filters.gt("fullDocument.testValue", 0);
 
         var config = MongoConfig.builder()
           .connectionUri(getConnectionUri())
