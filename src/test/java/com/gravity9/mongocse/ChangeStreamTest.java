@@ -283,6 +283,34 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         assertEquals(2, events2.get(0).getFullDocument().getInteger("testValue"));
     }
 
+    @Test
+    void givenConfigurationWithMatchStage_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
+        Bson match = Filters.lt("fullDocument.testValue", 2);
+
+        var config = MongoConfig.builder()
+          .connectionUri(getConnectionUri())
+          .databaseName(getDatabaseName())
+          .collectionName(getTestCollectionName())
+          .match(match)
+          .workerConfigCollectionName(getWorkerConfigCollectionName())
+          .clusterConfigCollectionName(getClusterConfigCollectionName())
+          .numberOfPartitions(3)
+          .fullDocument(FullDocument.UPDATE_LOOKUP)
+          .build();
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        insertDocumentsToAllPartitions();
+
+        // Wait for CDC event to arrive
+        Thread.sleep(500);
+
+        assertEquals(2, listener.getEvents().size());
+    }
+
     private int insertDocumentsToAllPartitions() {
         Document testDoc0 = new Document(Map.of(
                 "_id", new ObjectId(TestIds.MOD_0_ID),
