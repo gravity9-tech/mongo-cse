@@ -284,19 +284,9 @@ class ChangeStreamTest extends AbstractMongoDbBase {
     }
 
     @Test
-    void givenConfigurationWithMatchStage_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
-        Bson match = Filters.gt("fullDocument.testValue", 0);
-
-        var config = MongoConfig.builder()
-          .connectionUri(getConnectionUri())
-          .databaseName(getDatabaseName())
-          .collectionName(getTestCollectionName())
-          .match(match)
-          .workerConfigCollectionName(getWorkerConfigCollectionName())
-          .clusterConfigCollectionName(getClusterConfigCollectionName())
-          .numberOfPartitions(3)
-          .fullDocument(FullDocument.UPDATE_LOOKUP)
-          .build();
+    void givenConfigurationWithMatchStageWithSingleCondition_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
+        var match = Filters.gt("fullDocument.testValue", 0);
+        var config = buildMongoConfig(match);
 
         MongoCseManager manager = new MongoCseManager(config);
         TestChangeStreamListener listener = new TestChangeStreamListener();
@@ -309,6 +299,41 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         Thread.sleep(500);
 
         assertEquals(2, listener.getEvents().size());
+    }
+
+    @Test
+    void givenConfigurationWithMatchStageWithMultipleConditions_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
+        var match = Filters.and(
+          Filters.gt("fullDocument.testValue", 0),
+          Filters.lt("fullDocument.testValue", 2),
+          Filters.in("operationType", List.of("insert"))
+        );
+        var config = buildMongoConfig(match);
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        insertDocumentsToAllPartitions();
+
+        // Wait for CDC event to arrive
+        Thread.sleep(500);
+
+        assertEquals(1, listener.getEvents().size());
+    }
+
+    private MongoConfig buildMongoConfig(Bson match) {
+        return MongoConfig.builder()
+          .connectionUri(getConnectionUri())
+          .databaseName(getDatabaseName())
+          .collectionName(getTestCollectionName())
+          .match(match)
+          .workerConfigCollectionName(getWorkerConfigCollectionName())
+          .clusterConfigCollectionName(getClusterConfigCollectionName())
+          .numberOfPartitions(3)
+          .fullDocument(FullDocument.UPDATE_LOOKUP)
+          .build();
     }
 
     private int insertDocumentsToAllPartitions() {
