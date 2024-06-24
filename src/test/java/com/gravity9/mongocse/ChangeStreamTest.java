@@ -343,7 +343,7 @@ class ChangeStreamTest extends AbstractMongoDbBase {
     }
 
     @Test
-    void givenConfigurationWithMatchStage_and_customKeyName_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
+    void givenConfigurationWithMatchStage_and_multipleListeners_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
         var match = Filters.in("fullDocument.testValue", List.of(0, 2));
         var config = MongoConfig.builder()
           .connectionUri(getConnectionUri())
