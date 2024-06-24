@@ -1,7 +1,9 @@
 package com.gravity9.mongocse;
 
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
+import org.bson.conversions.Bson;
 
 public class MongoConfig {
 
@@ -10,6 +12,8 @@ public class MongoConfig {
 	private final String databaseName;
 
 	private final String collectionName;
+
+	private final Bson match;
 
 	private final String keyName;
 
@@ -29,6 +33,7 @@ public class MongoConfig {
 		this.connectionUri = mongoConfigBuilder.connectionUri;
 		this.databaseName = mongoConfigBuilder.databaseName;
 		this.collectionName = mongoConfigBuilder.collectionName;
+		this.match = mongoConfigBuilder.match;
 		this.keyName = mongoConfigBuilder.keyName;
 		this.numberOfPartitions = mongoConfigBuilder.numberOfPartitions;
 		this.workerConfigCollectionName = mongoConfigBuilder.workerConfigCollectionName;
@@ -52,6 +57,10 @@ public class MongoConfig {
 
 	public String getCollectionName() {
 		return collectionName;
+	}
+
+	public Bson getMatch() {
+		return match;
 	}
 
 	public String getKeyName() {
@@ -90,6 +99,8 @@ public class MongoConfig {
 
 		private String collectionName;
 
+		private Bson match = Filters.empty();
+
 		private String keyName = "_id";
 
 		private int numberOfPartitions;
@@ -117,6 +128,11 @@ public class MongoConfig {
 
 		public MongoConfigBuilder collectionName(String collectionName) {
 			this.collectionName = collectionName;
+			return this;
+		}
+
+		public MongoConfigBuilder match(Bson match) {
+			this.match = match;
 			return this;
 		}
 

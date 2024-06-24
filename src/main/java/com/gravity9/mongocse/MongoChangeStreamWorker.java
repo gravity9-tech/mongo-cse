@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.gravity9.mongocse.MongoExpressions.abs;
+import static com.gravity9.mongocse.MongoExpressions.and;
 import static com.gravity9.mongocse.MongoExpressions.cond;
 import static com.gravity9.mongocse.MongoExpressions.documentKey;
 import static com.gravity9.mongocse.MongoExpressions.eq;
@@ -90,9 +91,12 @@ class MongoChangeStreamWorker implements Runnable {
 
         ChangeStreamIterable<Document> watch = collection.watch(List.of(
                 Aggregates.match(
-                        or(List.of(
-                                partitionMatchExpression(fullDocumentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition),
-                                partitionMatchExpression(documentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition)
+                        and(List.of(
+                            mongoConfig.getMatch(),
+                            or(List.of(
+                                    partitionMatchExpression(fullDocumentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition),
+                                    partitionMatchExpression(documentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition)
+                            ))
                         ))
                 )
             ))

@@ -16,8 +16,13 @@ class MongoExpressions {
 	static Bson eq(Bson expr, int value) {
 		return new Document("$eq", List.of(expr, value));
 	}
+
 	static Bson or(List<Bson> expressions) {
 		return new Document("$or", expressions);
+	}
+
+	static Bson and(List<Bson> expressions) {
+		return new Document("$and", expressions);
 	}
 
 	static Bson mod(Bson expr, int value) {
