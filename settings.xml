@@ -17,6 +17,7 @@
                 <gpg.executable>gpg2</gpg.executable>
                 <gpg.passphraseEnvName>GPG_PASSPHRASE</gpg.passphraseEnvName>
                 <gpg.keyEnvName>GPG_KEY</gpg.keyEnvName>
+                <gpg.keyName>${GPG_KEY_NAME}</gpg.keyName>
             </properties>
         </profile>
     </profiles>
