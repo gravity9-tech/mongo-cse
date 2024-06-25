@@ -10,7 +10,11 @@
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>This is a lightweight library that allows Java developers to scale their usage of MongoDB Change Streams. Mongo Change Stream Enhancer divides Change Stream events into partitions and enables you to handle them in separate Threads, increasing throughput. It achieves that by creating a Change Stream per each partition (number is configurable) and handling each Change Stream in a dedicated Thread.</description>
+    <description>This is a lightweight library that allows Java developers to scale their usage of MongoDB Change
+        Streams. Mongo Change Stream Enhancer divides Change Stream events into partitions and enables you to handle
+        them in separate Threads, increasing throughput. It achieves that by creating a Change Stream per each partition
+        (number is configurable) and handling each Change Stream in a dedicated Thread.
+    </description>
     <url>https://github.com/gravity9-tech/mongo-cse</url>
 
     <licenses>
@@ -302,7 +306,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.5</version>
+                <version>3.2.4</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
@@ -310,14 +314,8 @@
                         <goals>
                             <goal>sign</goal>
                         </goals>
-                        <configuration>
-                            <gpgArguments>
-                                <arg>--yes</arg>
-                                <arg>--always-trust</arg>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
-                            </gpgArguments>
-                        </configuration>
+<!--                        <configuration>-->
+<!--                        </configuration>-->
                     </execution>
                 </executions>
             </plugin>
