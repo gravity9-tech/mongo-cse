@@ -314,6 +314,8 @@
                             <gpgArguments>
                                 <arg>--yes</arg>
                                 <arg>--always-trust</arg>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
                             </gpgArguments>
                         </configuration>
                     </execution>
@@ -330,7 +332,7 @@
                     <publishingServerId>central</publishingServerId>
                     <tokenAuth>true</tokenAuth>
                     <!--                            <autoPublish>true</autoPublish>-->
-<!--                                                <waitUntil>published</waitUntil>-->
+                    <!--                                                <waitUntil>published</waitUntil>-->
                 </configuration>
             </plugin>
 
