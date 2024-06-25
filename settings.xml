@@ -15,7 +15,8 @@
             </activation>
             <properties>
                 <gpg.executable>gpg2</gpg.executable>
-                <gpg.passphrase>${sonatype.gpg.passphrase}</gpg.passphrase>
+                <gpg.passphraseEnvName>GPG_PASSPHRASE</gpg.passphraseEnvName>
+                <gpg.keyEnvName>GPG_KEY</gpg.keyEnvName>
             </properties>
         </profile>
     </profiles>

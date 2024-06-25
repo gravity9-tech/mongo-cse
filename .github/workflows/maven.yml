@@ -27,10 +27,13 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-        gpg-private-key: ${{ secrets.SIGNING_KEY }}
+        overwrite-settings: false
     - name: Build with Maven
       run: mvn -B package --file pom.xml
     - name: Run checks
+      env:
+        GPG_KEY: ${{ secrets.SIGNING_KEY }}
+        GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
       run: mvn verify --settings $GITHUB_WORKSPACE/settings.xml -DskipTests
     - name: Archive jars
       uses: actions/upload-artifact@v3
