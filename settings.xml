@@ -19,10 +19,6 @@
                 <gpg.keyEnvName>GPG_KEY</gpg.keyEnvName>
                 <gpg.keyName>${GPG_KEY_NAME}</gpg.keyName>
             </properties>
-            <gpgArguments>
-                <arg>--yes</arg>
-                <arg>--always-trust</arg>
-            </gpgArguments>
         </profile>
     </profiles>
 </settings>
