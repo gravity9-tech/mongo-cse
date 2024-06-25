@@ -47,7 +47,7 @@ jobs:
         GPG_KEY: ${{ secrets.SIGNING_KEY }}
         GPG_KEY_NAME: ${{ secrets.SIGNING_KEY_ID }}
         GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
-      run: mvn verify -s $GITHUB_WORKSPACE/settings.xml -DskipTests
+      run: mvn verify -P ossrh -s $GITHUB_WORKSPACE/settings.xml -DskipTests
     - name: Archive jars
       uses: actions/upload-artifact@v3
       with:
