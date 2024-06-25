@@ -314,8 +314,16 @@
                         <goals>
                             <goal>sign</goal>
                         </goals>
-<!--                        <configuration>-->
-<!--                        </configuration>-->
+                        <configuration>
+                            <keyEnvName>GPG_KEY</keyEnvName>
+                            <passphraseEnvName>GPG_PASSPHRASE</passphraseEnvName>
+                            <gpgArguments>
+                                <arg>--yes</arg>
+                                <arg>--always-trust</arg>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
