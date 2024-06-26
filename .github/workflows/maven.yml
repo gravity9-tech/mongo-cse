@@ -68,7 +68,7 @@ jobs:
   deploy:
 #    if: github.ref == 'refs/heads/main' COMMENTED OUT FOR TESTING ONLY
     runs-on: ubuntu-latest
-    environment: Deployment_manual
+#    environment: Deployment_manual
     steps:
     - name: Deploy to SonaType
       run: mvn deploy --file pom.xml -s $GITHUB_WORKSPACE/settings.xml
