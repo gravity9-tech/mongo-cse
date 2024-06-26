@@ -20,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Configure GPG Key
+      run: |
+        echo -n "$GPG_SIGNING_KEY" | base64 --decode | gpg --import --batch
+      env:
+        GPG_SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
     - uses: actions/checkout@v3
     - name: Set up JDK 17
       uses: actions/setup-java@v3
@@ -47,7 +52,7 @@ jobs:
         GPG_KEY: ${{ secrets.SIGNING_KEY }}
         GPG_KEY_NAME: ${{ secrets.SIGNING_KEY_ID }}
         GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
-      run: mvn verify -P ossrh -s $GITHUB_WORKSPACE/settings.xml -DskipTests
+      run: mvn verify -DskipTests
     - name: Archive jars
       uses: actions/upload-artifact@v3
       with:
