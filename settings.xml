@@ -14,7 +14,7 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <gpg.passphraseEnvName>sonatype.gpg.passphrase</gpg.passphraseEnvName>
+                <gpg.passphraseEnvName>GPG_PASSPHRASE</gpg.passphraseEnvName>
             </properties>
         </profile>
     </profiles>
