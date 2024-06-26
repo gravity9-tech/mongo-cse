@@ -41,7 +41,11 @@ jobs:
         server-password: OSSRH_TOKEN
         gpg-passphrase: GPG_PASSPHRASE
     - name: Run checks
-      run: mvn verify -DskipTests
+      env:
+        sonatype.username: ${{ secrets.OSSRH_USERNAME }}
+        sonatype.password: ${{ secrets.OSSRH_TOKEN }}
+        sonatype.gpg.passphrase: ${{ secrets.SIGNING_PASSWORD }}
+      run: mvn verify -DskipTests -s $GITHUB_WORKSPACE/settings.xml
     - name: Build with Maven
       run: mvn -B package --file pom.xml
     - name: Archive jars
