@@ -39,8 +39,8 @@ jobs:
         overwrite-settings: false
     - name: Run checks
       env:
-        sonatype.username: ${{ secrets.OSSRH_USERNAME }}
-        sonatype.password: ${{ secrets.OSSRH_TOKEN }}
+        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
       run: mvn verify -DskipTests -s $GITHUB_WORKSPACE/settings.xml
     - name: Build with Maven
