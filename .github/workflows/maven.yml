@@ -40,10 +40,10 @@ jobs:
         server-username: OSSRH_USERNAME
         server-password: OSSRH_TOKEN
         gpg-passphrase: GPG_PASSPHRASE
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
     - name: Run checks
       run: mvn verify -DskipTests
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
     - name: Archive jars
       uses: actions/upload-artifact@v3
       with:
