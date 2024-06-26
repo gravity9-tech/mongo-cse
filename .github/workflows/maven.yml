@@ -65,7 +65,7 @@ jobs:
         name: jacoco-coverage-report
         path: target/site/jacoco/
     - name: Deploy to SonaType
-      run: mvn deploy --file pom.xml -s $GITHUB_WORKSPACE/settings.xml
+      run: mvn deploy --file pom.xml -s $GITHUB_WORKSPACE/settings.xml -DskipTests
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
