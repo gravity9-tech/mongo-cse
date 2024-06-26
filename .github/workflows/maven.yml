@@ -22,7 +22,7 @@ jobs:
     steps:
     - name: Configure GPG Key
       run: |
-        echo  ${{ secrets.SIGNING_KEY_ID }}
+        echo $GPG_SIGNING_KEY
       env:
         GPG_SIGNING_KEY: ${{ secrets.SIGNING_KEY_ID }}
     - uses: actions/checkout@v3
