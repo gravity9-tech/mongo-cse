@@ -22,7 +22,7 @@ jobs:
     steps:
     - name: Configure GPG Key
       run: |
-        echo -n "$GPG_SIGNING_KEY" | base64 --decode | gpg --import --batch
+        echo -n "$GPG_SIGNING_KEY" | gpg --import --batch
       env:
         GPG_SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
     - uses: actions/checkout@v3
