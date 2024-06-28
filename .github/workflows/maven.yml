@@ -14,11 +14,14 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  MAVEN_USERNAME: ${{ secrets.TOKEN_USERNAME }}
+  MAVEN_PASSWORD: ${{ secrets.TOKEN_PASSWORD }}
+  GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - name: Configure GPG Key
       run: |
@@ -28,10 +31,6 @@ jobs:
     - uses: actions/checkout@v3
     - name: Set up JDK 17
       uses: actions/setup-java@v3
-      env:
-        MAVEN_USERNAME: ${{ secrets.TOKEN_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.TOKEN_PASSWORD }}
-        GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -41,10 +40,6 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml -DskipTests
     - name: Run checks
-      env:
-        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-        GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
       run: mvn verify -DskipTests
     - name: Archive jars
       uses: actions/upload-artifact@v3

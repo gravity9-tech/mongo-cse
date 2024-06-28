@@ -315,43 +315,11 @@
                             <goal>sign</goal>
                         </goals>
                         <configuration>
-<!--                            <passphraseServerId>gpg.passphrase</passphraseServerId>-->
-                            <gpgArguments>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
-                                <arg>--no-tty</arg>
-                            </gpgArguments>
+                            <passphraseEnvName>GPG_PASSPHRASE</passphraseEnvName>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- Also generates checksums -->
-<!--            <plugin>-->
-<!--                <groupId>org.sonatype.central</groupId>-->
-<!--                <artifactId>central-publishing-maven-plugin</artifactId>-->
-<!--                <version>0.4.0</version>-->
-<!--                <extensions>true</extensions>-->
-<!--                <configuration>-->
-<!--                    <publishingServerId>ossrh</publishingServerId>-->
-<!--                    <tokenAuth>true</tokenAuth>-->
-<!--                    &lt;!&ndash;                            <autoPublish>true</autoPublish>&ndash;&gt;-->
-<!--                    &lt;!&ndash;                                                <waitUntil>published</waitUntil>&ndash;&gt;-->
-<!--                </configuration>-->
-<!--            </plugin>-->
-
-<!--            <plugin>-->
-<!--                <groupId>org.sonatype.plugins</groupId>-->
-<!--                <artifactId>nexus-staging-maven-plugin</artifactId>-->
-<!--                <version>1.7.0</version>-->
-<!--                <extensions>true</extensions>-->
-<!--                <configuration>-->
-<!--                    <serverId>ossrh</serverId>-->
-<!--                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>-->
-<!--                    <stagingRepositoryId>ossrh</stagingRepositoryId>-->
-<!--                    <autoReleaseAfterClose>true</autoReleaseAfterClose>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
         </plugins>
     </build>
 
