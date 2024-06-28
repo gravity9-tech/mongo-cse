@@ -17,6 +17,7 @@ on:
 env:
   MAVEN_USERNAME: ${{ secrets.TOKEN_USERNAME }}
   MAVEN_PASSWORD: ${{ secrets.TOKEN_PASSWORD }}
+  GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
 
 jobs:
   build:
