@@ -38,9 +38,9 @@ jobs:
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
     - name: Build with Maven
-      run: mvn -B package --file pom.xml -DskipTests
+      run: mvn -B package
     - name: Run checks
-      run: mvn verify -DskipTests
+      run: mvn verify
     - name: Archive jars
       uses: actions/upload-artifact@v3
       with:
@@ -60,22 +60,11 @@ jobs:
       with:
         name: jacoco-coverage-report
         path: target/site/jacoco/
-    - name: Deploy to SonaType
-      run: mvn deploy -s $GITHUB_WORKSPACE/settings.xml --file pom.xml -DskipTests
-      env:
-        MAVEN_USERNAME: ${{ secrets.TOKEN_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.TOKEN_PASSWORD }}
-        GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
 
   deploy:
-#    if: github.ref == 'refs/heads/main' COMMENTED OUT FOR TESTING ONLY
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: Deployment_manual
     steps:
     - name: Deploy to SonaType
-      run: mvn deploy -s $GITHUB_WORKSPACE/settings.xml --file pom.xml
-      env:
-        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-        GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
-
+      run: mvn deploy
