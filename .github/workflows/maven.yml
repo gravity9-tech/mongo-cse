@@ -63,8 +63,8 @@ jobs:
     - name: Deploy to SonaType
       run: mvn deploy -s $GITHUB_WORKSPACE/settings.xml --file pom.xml -DskipTests
       env:
-        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        MAVEN_USERNAME: ${{ secrets.TOKEN_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.TOKEN_PASSWORD }}
         GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
 
   deploy:
