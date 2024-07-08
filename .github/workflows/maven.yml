@@ -14,12 +14,20 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  NEXUS_USERNAME: ${{ secrets.TOKEN_USERNAME }}
+  NEXUS_PASSWORD: ${{ secrets.TOKEN_PASSWORD }}
+  SIGNING_KEY_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
+    - name: Configure Signing Key
+      run: |
+        echo -n "$SIGNING_KEY" | base64 --decode | gpg --import --batch
+      env:
+        SIGNING_KEY: ${{ secrets.SIGNING_KEY_BASE64 }}
     - uses: actions/checkout@v3
     - name: Set up JDK 17
       uses: actions/setup-java@v3
@@ -27,15 +35,16 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+        server-username: NEXUS_USERNAME
+        server-password: NEXUS_PASSWORD
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -B package
     - name: Run checks
       run: mvn verify
-    - name: Archive jar
+    - name: Archive jars
       uses: actions/upload-artifact@v3
       with:
-        name: mcse-jar
-        path: target/*.jar
+        path: target/*.jar*
     - name: Archive pmd
       uses: actions/upload-artifact@v3
       with:
@@ -51,3 +60,11 @@ jobs:
       with:
         name: jacoco-coverage-report
         path: target/site/jacoco/
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: Deployment_manual
+    steps:
+    - name: Deploy to SonaType
+      run: mvn deploy
