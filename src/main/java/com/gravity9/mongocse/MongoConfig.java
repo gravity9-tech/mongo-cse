@@ -41,7 +41,7 @@ public class MongoConfig {
 		this.fullDocument = mongoConfigBuilder.fullDocument;
 		this.fullDocumentBeforeChange = mongoConfigBuilder.fullDocumentBeforeChange;
 		this.maxAwaitTimeInMs = mongoConfigBuilder.maxAwaitTimeInMs;
-	}
+    }
 
 	public static MongoConfigBuilder builder() {
 		return new MongoConfigBuilder();
