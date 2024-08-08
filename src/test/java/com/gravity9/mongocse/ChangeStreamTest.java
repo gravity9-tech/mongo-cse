@@ -283,6 +283,120 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         assertEquals(2, events2.get(0).getFullDocument().getInteger("testValue"));
     }
 
+    @Test
+    void givenConfigurationWithMatchStageWithSingleCondition_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
+        var match = Filters.gt("fullDocument.testValue", 0);
+        var config = buildMongoConfig(match);
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        insertDocumentsToAllPartitions();
+
+        // Wait for CDC event to arrive
+        Thread.sleep(500);
+
+        assertEquals(2, listener.getEvents().size());
+    }
+
+    @Test
+    void givenConfigurationWithMatchStageWithMultipleConditions_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
+        var match = Filters.and(
+          Filters.gt("fullDocument.testValue", 0),
+          Filters.lt("fullDocument.testValue", 2),
+          Filters.in("operationType", List.of("insert"))
+        );
+        var config = buildMongoConfig(match);
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        insertDocumentsToAllPartitions();
+
+        // Wait for CDC event to arrive
+        Thread.sleep(500);
+
+        assertEquals(1, listener.getEvents().size());
+    }
+
+    @Test
+    void givenConfigurationWithMatchStageWithIdFilter_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
+        var match = Filters.eq("fullDocument._id", new ObjectId(TestIds.MOD_0_ID));
+        var config = buildMongoConfig(match);
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        insertDocumentsToAllPartitions();
+
+        // Wait for CDC event to arrive
+        Thread.sleep(500);
+
+        assertEquals(1, listener.getEvents().size());
+        assertEquals(0, listener.getEvents().get(0).getFullDocument().getInteger("testValue"));
+    }
+
+    @Test
+    void givenConfigurationWithMatchStage_and_multipleListeners_shouldAcceptOnlyMatchingEvents() throws InterruptedException {
+        var match = Filters.in("fullDocument.testValue", List.of(0, 2));
+        var config = MongoConfig.builder()
+          .connectionUri(getConnectionUri())
+          .databaseName(getDatabaseName())
+          .collectionName(getTestCollectionName())
+          .match(match)
+          .keyName("testId")
+          .workerConfigCollectionName(getWorkerConfigCollectionName())
+          .clusterConfigCollectionName(getClusterConfigCollectionName())
+          .numberOfPartitions(3)
+          .fullDocument(FullDocument.UPDATE_LOOKUP)
+          .build();
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener0 = new TestChangeStreamListener();
+        TestChangeStreamListener listener1 = new TestChangeStreamListener();
+        TestChangeStreamListener listener2 = new TestChangeStreamListener();
+        manager.registerListener(listener0, List.of(0));
+        manager.registerListener(listener1, List.of(1));
+        manager.registerListener(listener2, List.of(2));
+        manager.start();
+
+        insertDocumentsWithTestIdToAllPartitions();
+
+        // Wait for CDC event to arrive
+        Thread.sleep(500);
+
+        List<ChangeStreamDocument<Document>> events0 = listener0.getEvents();
+        List<ChangeStreamDocument<Document>> events1 = listener1.getEvents();
+        List<ChangeStreamDocument<Document>> events2 = listener2.getEvents();
+
+        assertEquals(1, events0.size());
+        assertEquals(0, events0.get(0).getFullDocument().getInteger("testValue"));
+
+        assertEquals(0, events1.size());
+
+        assertEquals(1, events2.size());
+        assertEquals(2, events2.get(0).getFullDocument().getInteger("testValue"));
+    }
+
+    private MongoConfig buildMongoConfig(Bson match) {
+        return MongoConfig.builder()
+          .connectionUri(getConnectionUri())
+          .databaseName(getDatabaseName())
+          .collectionName(getTestCollectionName())
+          .match(match)
+          .workerConfigCollectionName(getWorkerConfigCollectionName())
+          .clusterConfigCollectionName(getClusterConfigCollectionName())
+          .numberOfPartitions(3)
+          .fullDocument(FullDocument.UPDATE_LOOKUP)
+          .build();
+    }
+
     private int insertDocumentsToAllPartitions() {
         Document testDoc0 = new Document(Map.of(
                 "_id", new ObjectId(TestIds.MOD_0_ID),
