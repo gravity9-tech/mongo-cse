@@ -20,8 +20,30 @@ env:
   SIGNING_KEY_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
 
 jobs:
+  calc_version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}   # checkout the correct branch name
+          fetch-depth: 0                # fetch the whole repo history
+
+      - name: Git Version
+        id: version
+        uses: codacy/git-version@2.7.1
+
+      - name: Use the version
+        run: |
+          echo ${{ steps.version.outputs.version }}
+      - name: Use the previous version
+        run: |
+          echo ${{ steps.version.outputs.previous-version }}
+
   build:
     runs-on: ubuntu-latest
+    needs:
+      - calc_version
     steps:
     - name: Configure Signing Key
       run: |
@@ -40,9 +62,7 @@ jobs:
     - name: Build with Maven
       run: mvn -B package
     - name: Run checks
-      run: |
-        mvn verify
-        ls -alR .
+      run: mvn verify
     - name: Archive jars
       uses: actions/upload-artifact@v4
       with:
