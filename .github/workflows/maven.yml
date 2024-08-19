@@ -112,3 +112,7 @@ jobs:
         server-password: NEXUS_PASSWORD
     - name: Deploy to SonaType
       run: mvn deploy
+    - name: Tag repository
+      run: |
+        git tag $version
+        git push origin $version
