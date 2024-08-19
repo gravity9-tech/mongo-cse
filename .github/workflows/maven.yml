@@ -42,7 +42,7 @@ jobs:
     - name: Run checks
       run: |
         mvn verify
-        ls -alR target/
+        ls -alR .
     - name: Archive jars
       uses: actions/upload-artifact@v4
       with:
