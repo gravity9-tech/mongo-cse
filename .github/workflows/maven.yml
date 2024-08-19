@@ -33,7 +33,9 @@ jobs:
 
       - name: Git Version
         id: version
-        uses: codacy/git-version@2.7.1
+        uses: codacy/git-version@2.8.0
+        with:
+          release-branch: cosmetic-improvements
 
       - name: Show version
         env:
