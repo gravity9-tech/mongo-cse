@@ -64,6 +64,8 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    needs:
+      - build
     environment: Deployment_manual
     steps:
     - name: Configure Signing Key
