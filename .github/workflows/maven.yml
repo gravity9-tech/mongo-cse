@@ -77,11 +77,6 @@ jobs:
       with:
         name: pmd-report
         path: target/site/pmd.html
-    - name: Archive dependency check
-      uses: actions/upload-artifact@v4
-      with:
-        name: dependency-check-report
-        path: target/dependency-check-report.html
     - name: Archive code coverage report
       uses: actions/upload-artifact@v4
       with:
