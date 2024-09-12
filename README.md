@@ -66,7 +66,7 @@ MongoConfig mongoConfig = MongoConfig.builder()
 		.build();
 
 // Create manager and configs
-MongoCseManager manager = new MongoCseManager(URI, DB_NAME, COLL_NAME, 3);
+MongoCseManager manager = new MongoCseManager(mongoConfig);
 
 // Create listener dedicated to partitions 0 and 1
 MyChangeStreamListener myListener = new MyChangeStreamListener();
