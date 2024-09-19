@@ -91,8 +91,6 @@ jobs:
     needs:
       - build
       - calc_version
-    env:
-      version: ${{ needs.calc_version.outputs.version }}
     environment: Deployment_manual
     steps:
     - name: Configure Signing Key
@@ -112,7 +110,23 @@ jobs:
         server-password: NEXUS_PASSWORD
     - name: Deploy to SonaType
       run: mvn deploy
-    - name: Tag repository
-      run: |
-        git tag $version
-        git push origin $version
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs:
+      - calc_version
+      - deploy
+    permissions:
+      contents: write
+    steps:
+      - name: Create tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ needs.calc_version.outputs.version }}',
+              sha: context.sha
+            })
