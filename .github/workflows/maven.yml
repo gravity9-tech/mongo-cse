@@ -94,6 +94,8 @@ jobs:
     needs:
       - build
       - calc_version
+    env:
+      version: ${{ needs.calc_version.outputs.version }}
     environment: Deployment_manual
     steps:
     - name: Configure Signing Key
