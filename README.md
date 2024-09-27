@@ -161,3 +161,25 @@ To run tests, simply run `mvn test`
 [GitHub Acitons badge]: https://github.com/gravity9-tech/mongocdc/actions/workflows/maven.yml/badge.svg?branch=main
 
 [GitHub Acitons link]: https://github.com/gravity9-tech/mongocdc/actions/workflows/maven.yml
+
+## Using it in your project
+
+With Gradle:
+
+```groovy
+dependencies {
+  compile(group: "com.gravity9", name: 'mongo-change-stream-enhancer', version: "yourVersionHere");
+}
+```
+
+With Maven:
+
+```xml
+<dependency>
+    <groupId>com.gravity9</groupId>
+    <artifactId>mongo-change-stream-enhancer</artifactId>
+    <version>1.0.0-beta</version>
+</dependency>
+```
+
+[Maven repo link](https://mvnrepository.com/artifact/com.gravity9/mongo-change-stream-enhancer)
