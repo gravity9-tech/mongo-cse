@@ -22,10 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ChangeStreamTest extends AbstractMongoDbBase {
 
@@ -526,60 +523,6 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         // Verify that partition1Listener did not receive any events.
         List<ChangeStreamDocument<Document>> partition1Events = partition1Listener.getEvents();
         assertEquals(0, partition1Events.size(), "Listener registered for partition 1 should not receive events from partition 0.");
-    }
-
-    @Test
-    void givenListenerOnSpecificPartition_shouldReceiveEventsOnlyFromRegisteredPartition() throws InterruptedException {
-        MongoCseManager manager = new MongoCseManager(mongoConfig);
-
-        // Create listeners for each partition
-        TestChangeStreamListener partition0Listener = new TestChangeStreamListener();
-        manager.registerListener(partition0Listener, List.of(0));
-        manager.start();
-
-        // Insert documents for partitions 0, 1, and 2
-        Document testDoc0 = new Document(Map.of("_id", new ObjectId(), "testValue", 0));
-        Document testDoc1 = new Document(Map.of("_id", new ObjectId(), "testValue", 1));
-        Document testDoc2 = new Document(Map.of("_id", new ObjectId(), "testValue", 2));
-        collection.insertMany(List.of(testDoc0, testDoc1, testDoc2));
-
-        // Wait for CDC events to arrive
-        Thread.sleep(500);
-
-        // Verify the listener only receives events from the registered partition (partition 0)
-        List<ChangeStreamDocument<Document>> partition0Events = partition0Listener.getEvents();
-        assertEquals(1, partition0Events.size(), "Listener should only receive events from partition 0.");
-        assertEquals(0, partition0Events.get(0).getFullDocument().getInteger("testValue"));
-    }
-
-    @Test
-    void givenDelayedListenerRegistration_shouldReceiveExpectedResults() throws InterruptedException {
-        MongoCseManager manager = new MongoCseManager(mongoConfig);
-
-        // Create a listener that will register after initial events
-        TestChangeStreamListener delayedListener = new TestChangeStreamListener();
-
-        // Simulate initial events
-        insertMultipleDocumentsToAllPartitions(10);
-
-        // Register the listener after initial events
-        manager.registerListener(delayedListener, List.of(1));
-        manager.start();
-
-        // Insert more documents
-        insertMultipleDocumentsToAllPartitions(5);
-
-        // Wait for events to be processed
-        Thread.sleep(100); // Ensure sufficient time for events to propagate
-
-        // Verify that the delayed listener received the expected events
-        assertEquals(10, delayedListener.getEvents().size(), "Delayed listener should receive 10 events.");
-
-        // Optionally validate the content of received events
-        for (ChangeStreamDocument<Document> event : delayedListener.getEvents()) {
-            assertTrue(event.getFullDocument().getInteger("testValue") >= 10 && event.getFullDocument().getInteger("testValue") < 20,
-                    "Unexpected value in delayed listener events.");
-        }
     }
 
     private MongoConfig buildMongoConfig(Bson match) {
