@@ -140,6 +140,7 @@ public class MongoCseManager implements Closeable {
 
     @Override
     public void close() throws IOException {
+            stop();
             clientProvider.close();
     }
 }
