@@ -91,7 +91,7 @@ manager.start();
 * `collectionName` - name of the collection on which change stream listener should be applied
 * `match` - $match pipeline stage to filter change stream events. It can be used for filtering e.g. `fullDocument` or `operationType` event fields. By default, it accepts all events.
 * `keyName` - name of the key that will be used as partitioning key. Default value is `_id`. Key value is required for every document and should be of type ObjectId. Value of the key doesn't have to be unique.
-* `numberOfPartitions` - how many partitions should be used (how many parallel listeners can be run)
+* `numberOfPartitions` - how many partitions should be used (how many parallel listeners can be run). `keyName` will be used to split data across partitions. Library starts a dedicated worker/thread and opens a separate change stream per each partition. That means events for the same document key always go to the same partition, so ordering is preserved within that partition.
 * `workerConfigCollectionName` - by default set to `changeStreamWorkerConfig`. Collection name in which worker config is stored
 * `clusterConfigCollectionName` - by default set to `changeStreamClusterConfig`. collection name in which cluster config is stored
 * `fullDocument` - by default set to `FullDocument.UPDATE_LOOKUP` to return the latest version of the document.
