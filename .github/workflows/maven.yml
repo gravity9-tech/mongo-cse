@@ -104,7 +104,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        server-id: ossrh
+        server-id: central
         cache: maven
         server-username: NEXUS_USERNAME
         server-password: NEXUS_PASSWORD
