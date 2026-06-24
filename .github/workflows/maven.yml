@@ -91,6 +91,8 @@ jobs:
       - calc_version
     env:
       version: ${{ needs.calc_version.outputs.version }}
+      NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+      NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
     environment: Deployment_manual
     steps:
     - name: Configure Signing Key
