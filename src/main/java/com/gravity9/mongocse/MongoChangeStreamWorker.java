@@ -113,8 +113,15 @@ class MongoChangeStreamWorker implements Runnable {
         if (document != null) {
             Optional<String> changedDocumentIdOpt = getChangedDocumentId(document).map(ObjectId::toHexString);
             String changedDocumentId = changedDocumentIdOpt.orElse("?");
+            var operationType = document.getOperationType();
 
-            switch (document.getOperationType()) {
+            if (operationType == null) {
+                log.warn("Received document with null operation type, document id: {}", changedDocumentId);
+                listeners.forEach(listener -> listener.handle(document));
+                return;
+            }
+
+            switch (operationType) {
                 case UPDATE:
                     if (canLogSensitiveData()) {
                         var updateDescription = document.getUpdateDescription();
@@ -128,9 +135,9 @@ class MongoChangeStreamWorker implements Runnable {
                     break;
                 default:
                     if (canLogSensitiveData()) {
-                        log.debug("{} document: {}", document.getOperationType().name(), toJson(document.getFullDocument()));
+                        log.debug("{} document: {}", operationType.name(), toJson(document.getFullDocument()));
                     } else {
-                        log.info("{} document id: {}", document.getOperationType().name(), changedDocumentId);
+                        log.info("{} document id: {}", operationType.name(), changedDocumentId);
                     }
             }
 

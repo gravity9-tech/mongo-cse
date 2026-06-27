@@ -9,13 +9,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.mongodb.MongoDBContainer;
 
 import java.util.List;
 
 public abstract class AbstractMongoDbBase {
 
-    private static final MongoDBContainer MONGO_DB_CONTAINER = new MongoDBContainer("mongo:4.2.24");
+    private static final MongoDBContainer MONGO_DB_CONTAINER = new MongoDBContainer("mongo:4.2.24")
+            .withReplicaSet();
     protected static DefaultMongoClientProvider CLIENT_PROVIDER;
     private static final String COLL_NAME = "testCollection";
     private static final String DB_NAME = "test";
