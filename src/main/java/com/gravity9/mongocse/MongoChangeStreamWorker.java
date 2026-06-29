@@ -27,6 +27,7 @@ class MongoChangeStreamWorker implements Runnable {
 
     private static final String NULL_STRING = "null";
     private static final String RESUME_TOKEN_DATA_PROPERTY = "_data";
+    private static final String NON_RESUMABLE_CHANGE_STREAM_ERROR = "NonResumableChangeStreamError";
     private static final long DEFAULT_INIT_TIMEOUT_MS = 30 * 1000L;
     private static final long DEFAULT_SHUTDOWN_TIMEOUT_MS = 30 * 1000L;
     private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
@@ -100,8 +101,8 @@ class MongoChangeStreamWorker implements Runnable {
                     updateResumeToken(cursor.getResumeToken(), watch);
                 } while (isReadingFromChangeStream);
             } catch (MongoCommandException ex) {
-                if (ex.getErrorCode() == 286) {
-                    log.error("Resume token became invalid during processing for partition {} on collection {} (error 286). " +
+                if (ex.hasErrorLabel(NON_RESUMABLE_CHANGE_STREAM_ERROR)) {
+                    log.error("Non-resumable change stream error during processing for partition {} on collection {}. " +
                                     "Clearing token and restarting.",
                             partition, mongoConfig.getCollectionName(), ex);
                     configManager.clearResumeToken(configId);
@@ -198,8 +199,8 @@ class MongoChangeStreamWorker implements Runnable {
     }
 
     private void handleResumeTokenError(MongoCommandException e) {
-        if (e.getErrorCode() == 286) {
-            log.error("Invalid resume token for partition {} on collection {} (error 286: ChangeStreamHistoryLost). " +
+        if (e.hasErrorLabel(NON_RESUMABLE_CHANGE_STREAM_ERROR)) {
+            log.error("Non-resumable change stream error for partition {} on collection {}. " +
                             "Likely cause: manual DB changes or oplog pruned. Token cleared, restarting fresh. Invalid token: {}",
                     partition, mongoConfig.getCollectionName(), resumeToken, e);
 
