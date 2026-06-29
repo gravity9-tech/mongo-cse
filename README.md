@@ -97,6 +97,7 @@ manager.start();
 * `fullDocument` - by default set to `FullDocument.UPDATE_LOOKUP` to return the latest version of the document.
 * `fullDocumentBeforeChange` - by default set to `FullDocumentBeforeChange.OFF`. It is used to return version of the document before applying the change.
 * `maxAwaitTimeMS` - by default set to 1000 ms. The maximum amount of time in milliseconds the server waits for new data changes to report to the change stream cursor before returning an empty batch.
+* `fieldNames` - filters change stream events to only include updates that modify specific fields. Pass field names to listen only to changes affecting those fields (checks `updateDescription.updatedFields`). Useful when you want to react only to changes in particular document properties.
 
 
 For more info about `fullDocument`, `fullDocumentBeforeChange` and `maxAwaitTime` see https://www.mongodb.com/docs/manual/reference/method/db.collection.watch/
