@@ -3,7 +3,12 @@ package com.gravity9.mongocse;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
+import com.mongodb.client.model.changestream.OperationType;
 import org.bson.conversions.Bson;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class MongoConfig {
 
@@ -133,6 +138,20 @@ public class MongoConfig {
 
 		public MongoConfigBuilder match(Bson match) {
 			this.match = match;
+			return this;
+		}
+
+		public MongoConfigBuilder fieldNames(String... fieldNames) {
+			if (fieldNames == null || fieldNames.length == 0) {
+				return this;
+			}
+			List<Bson> fieldFilters = Arrays.stream(fieldNames)
+					.map(fieldName -> Filters.exists("updateDescription.updatedFields." + fieldName))
+					.collect(Collectors.toList());
+			Bson fieldFilter = fieldFilters.size() == 1
+					? fieldFilters.get(0)
+					: Filters.or(fieldFilters);
+			this.match = Filters.and(this.match, fieldFilter);
 			return this;
 		}
 

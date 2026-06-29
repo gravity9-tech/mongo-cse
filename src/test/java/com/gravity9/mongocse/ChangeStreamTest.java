@@ -437,4 +437,66 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         long actualCount = events.stream().filter(op -> op.getOperationType() == operationType).count();
         assertEquals(expectedCount, actualCount);
     }
+
+    @Test
+    void givenConfigurationWithFieldNamesFilter_shouldAcceptOnlyEventsWithSpecifiedFields() throws Exception {
+        var config = MongoConfig.builder()
+                .connectionUri(getConnectionUri())
+                .databaseName(getDatabaseName())
+                .collectionName(getTestCollectionName())
+                .workerConfigCollectionName(getWorkerConfigCollectionName())
+                .clusterConfigCollectionName(getClusterConfigCollectionName())
+                .numberOfPartitions(3)
+                .fullDocument(FullDocument.UPDATE_LOOKUP)
+                .fieldNames("name", "status")
+                .build();
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        Thread.sleep(1000);
+
+        Document testDoc = new Document(Map.of(
+                "name", "John Doe",
+                "status", "active",
+                "description", "Initial description"
+        ));
+        InsertOneResult insertResult = collection.insertOne(testDoc);
+        ObjectId docId = insertResult.getInsertedId().asObjectId().getValue();
+        log.info("Inserted document: {}", docId.toHexString());
+
+        collection.updateOne(
+                Filters.eq("_id", docId),
+                Updates.set("name", "Jane Doe")
+        );
+
+        collection.updateOne(
+                Filters.eq("_id", docId),
+                Updates.set("description", "Updated description")
+        );
+
+        collection.updateOne(
+                Filters.eq("_id", docId),
+                Updates.set("status", "inactive")
+        );
+
+        List<ChangeStreamDocument<Document>> events = waitForEvents(listener, 2);
+
+        assertEquals(2, events.size());
+        assertEventsContainNumberOfOpTypes(events, OperationType.UPDATE, 2);
+
+        var firstUpdate = events.get(0).getUpdateDescription();
+        var secondUpdate = events.get(1).getUpdateDescription();
+
+        assertDoesNotThrow(() -> {
+            boolean hasNameUpdate = (firstUpdate != null && firstUpdate.getUpdatedFields().containsKey("name")) ||
+                    (secondUpdate != null && secondUpdate.getUpdatedFields().containsKey("name"));
+            boolean hasStatusUpdate = (firstUpdate != null && firstUpdate.getUpdatedFields().containsKey("status")) ||
+                    (secondUpdate != null && secondUpdate.getUpdatedFields().containsKey("status"));
+            assertEquals(true, hasNameUpdate, "Expected update event for 'name' field");
+            assertEquals(true, hasStatusUpdate, "Expected update event for 'status' field");
+        });
+    }
 }
