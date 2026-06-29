@@ -97,11 +97,21 @@ class MongoChangeStreamWorker implements Runnable {
 
                 do {
                     processSingleDocument(cursor.tryNext());
-                    // Read resumeToken even with no new results to make sure the token does not expire
                     updateResumeToken(cursor.getResumeToken(), watch);
                 } while (isReadingFromChangeStream);
+            } catch (MongoCommandException ex) {
+                if (ex.getErrorCode() == 286) {
+                    log.error("Resume token became invalid during processing for partition {} on collection {} (error 286). " +
+                                    "Clearing token and restarting.",
+                            partition, mongoConfig.getCollectionName(), ex);
+                    configManager.clearResumeToken(configId);
+                    resumeToken = null;
+                } else {
+                    log.error("MongoDB command error {} during processing for partition {} on collection {}",
+                            ex.getErrorCode(), partition, mongoConfig.getCollectionName(), ex);
+                }
             } catch (Exception ex) {
-                log.error("Exception while processing change", ex);
+                log.error("Exception during processing for partition {} on collection {}", partition, mongoConfig.getCollectionName(), ex);
             }
         } while (isReadingFromChangeStream);
 
@@ -183,7 +193,21 @@ class MongoChangeStreamWorker implements Runnable {
             log.info("Resuming change stream for partition {} on collection {} with token: {}", partition, mongoConfig.getCollectionName(), resumeToken);
             watch.resumeAfter(buildResumeToken(resumeToken));
         } catch (MongoCommandException e) {
-            log.warn("Error while resuming with a saved token! Likely, token has expired from the opLog. Resuming fresh... Token: {}", resumeToken, e);
+            handleResumeTokenError(e);
+        }
+    }
+
+    private void handleResumeTokenError(MongoCommandException e) {
+        if (e.getErrorCode() == 286) {
+            log.error("Invalid resume token for partition {} on collection {} (error 286: ChangeStreamHistoryLost). " +
+                            "Likely cause: manual DB changes or oplog pruned. Token cleared, restarting fresh. Invalid token: {}",
+                    partition, mongoConfig.getCollectionName(), resumeToken, e);
+
+            configManager.clearResumeToken(configId);
+            resumeToken = null;
+        } else {
+            log.warn("Error resuming with saved token for partition {} on collection {} (error {}). Restarting fresh. Token: {}",
+                    partition, mongoConfig.getCollectionName(), e.getErrorCode(), resumeToken, e);
         }
     }
 
