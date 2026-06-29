@@ -7,8 +7,6 @@ import com.mongodb.client.model.changestream.OperationType;
 import org.bson.conversions.Bson;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class MongoConfig {
 
