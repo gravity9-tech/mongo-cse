@@ -92,7 +92,7 @@ class ConfigManager {
 			Updates.set("resumeToken", resumeToken)
 		);
 
-		return workerConfigCollection.find(Filters.eq("_id")).first();
+		return workerConfigCollection.find(Filters.eq("_id", id)).first();
 	}
 
 	void clearResumeToken(ObjectId id) {
