@@ -3,7 +3,6 @@ package com.gravity9.mongocse;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
-import com.mongodb.client.model.changestream.OperationType;
 import org.bson.conversions.Bson;
 
 import java.util.Arrays;
