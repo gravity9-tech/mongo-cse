@@ -6,4 +6,9 @@
     <Match>
         <Bug pattern="EI_EXPOSE_REP"/>
     </Match>
+    <!--  MongoCseManager constructor throws exceptions but has no finalizer, so no security risk  -->
+    <Match>
+        <Class name="com.gravity9.mongocse.MongoCseManager"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
 </FindBugsFilter>
