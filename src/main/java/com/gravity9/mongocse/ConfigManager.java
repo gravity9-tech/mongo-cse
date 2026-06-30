@@ -5,6 +5,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.bson.types.ObjectId;
@@ -21,6 +22,10 @@ class ConfigManager {
 
 	ConfigManager(MongoConfig mongoConfig, MongoClientProvider clientProvider) {
 		MongoDatabase db = clientProvider.getClient().getDatabase(mongoConfig.getDatabaseName());
+		ArrayList<String> dbList = clientProvider.getClient().listDatabaseNames().into(new ArrayList<>());
+		if (!dbList.contains(mongoConfig.getDatabaseName())) {
+			log.warn("Database: {} does not exist. A new DB will be created.", mongoConfig.getDatabaseName());
+		}
 		workerConfigCollection = db.getCollection(mongoConfig.getWorkerConfigCollectionName(), ChangeStreamWorkerConfig.class);
 		clusterConfigCollection = db.getCollection(mongoConfig.getClusterConfigCollectionName(), WorkerClusterConfig.class);
 	}
