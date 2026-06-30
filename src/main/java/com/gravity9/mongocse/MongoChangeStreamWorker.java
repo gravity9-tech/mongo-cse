@@ -27,6 +27,7 @@ class MongoChangeStreamWorker implements Runnable {
 
     private static final String NULL_STRING = "null";
     private static final String RESUME_TOKEN_DATA_PROPERTY = "_data";
+    private static final String NON_RESUMABLE_CHANGE_STREAM_ERROR = "NonResumableChangeStreamError";
     private static final long DEFAULT_INIT_TIMEOUT_MS = 30 * 1000L;
     private static final long DEFAULT_SHUTDOWN_TIMEOUT_MS = 30 * 1000L;
     private static final Logger log = LoggerFactory.getLogger(MongoChangeStreamWorker.class);
@@ -97,11 +98,21 @@ class MongoChangeStreamWorker implements Runnable {
 
                 do {
                     processSingleDocument(cursor.tryNext());
-                    // Read resumeToken even with no new results to make sure the token does not expire
                     updateResumeToken(cursor.getResumeToken(), watch);
                 } while (isReadingFromChangeStream);
+            } catch (MongoCommandException ex) {
+                if (ex.hasErrorLabel(NON_RESUMABLE_CHANGE_STREAM_ERROR)) {
+                    log.error("Non-resumable change stream error during processing for partition {} on collection {}. " +
+                                    "Clearing token and restarting.",
+                            partition, mongoConfig.getCollectionName(), ex);
+                    configManager.clearResumeToken(configId);
+                    resumeToken = null;
+                } else {
+                    log.error("MongoDB command error {} during processing for partition {} on collection {}",
+                            ex.getErrorCode(), partition, mongoConfig.getCollectionName(), ex);
+                }
             } catch (Exception ex) {
-                log.error("Exception while processing change", ex);
+                log.error("Exception during processing for partition {} on collection {}", partition, mongoConfig.getCollectionName(), ex);
             }
         } while (isReadingFromChangeStream);
 
@@ -113,8 +124,15 @@ class MongoChangeStreamWorker implements Runnable {
         if (document != null) {
             Optional<String> changedDocumentIdOpt = getChangedDocumentId(document).map(ObjectId::toHexString);
             String changedDocumentId = changedDocumentIdOpt.orElse("?");
+            var operationType = document.getOperationType();
 
-            switch (document.getOperationType()) {
+            if (operationType == null) {
+                log.warn("Received document with null operation type, document id: {}", changedDocumentId);
+                listeners.forEach(listener -> listener.handle(document));
+                return;
+            }
+
+            switch (operationType) {
                 case UPDATE:
                     if (canLogSensitiveData()) {
                         var updateDescription = document.getUpdateDescription();
@@ -128,9 +146,9 @@ class MongoChangeStreamWorker implements Runnable {
                     break;
                 default:
                     if (canLogSensitiveData()) {
-                        log.debug("{} document: {}", document.getOperationType().name(), toJson(document.getFullDocument()));
+                        log.debug("{} document: {}", operationType.name(), toJson(document.getFullDocument()));
                     } else {
-                        log.info("{} document id: {}", document.getOperationType().name(), changedDocumentId);
+                        log.info("{} document id: {}", operationType.name(), changedDocumentId);
                     }
             }
 
@@ -183,7 +201,21 @@ class MongoChangeStreamWorker implements Runnable {
             log.info("Resuming change stream for partition {} on collection {} with token: {}", partition, mongoConfig.getCollectionName(), resumeToken);
             watch.resumeAfter(buildResumeToken(resumeToken));
         } catch (MongoCommandException e) {
-            log.warn("Error while resuming with a saved token! Likely, token has expired from the opLog. Resuming fresh... Token: {}", resumeToken, e);
+            handleResumeTokenError(e);
+        }
+    }
+
+    private void handleResumeTokenError(MongoCommandException e) {
+        if (e.hasErrorLabel(NON_RESUMABLE_CHANGE_STREAM_ERROR)) {
+            log.error("Non-resumable change stream error for partition {} on collection {}. " +
+                            "Likely cause: manual DB changes or oplog pruned. Token cleared, restarting fresh. Invalid token: {}",
+                    partition, mongoConfig.getCollectionName(), resumeToken, e);
+
+            configManager.clearResumeToken(configId);
+            resumeToken = null;
+        } else {
+            log.warn("Error resuming with saved token for partition {} on collection {} (error {}). Restarting fresh. Token: {}",
+                    partition, mongoConfig.getCollectionName(), e.getErrorCode(), resumeToken, e);
         }
     }
 
