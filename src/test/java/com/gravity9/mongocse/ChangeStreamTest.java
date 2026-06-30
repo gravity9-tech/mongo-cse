@@ -437,4 +437,144 @@ class ChangeStreamTest extends AbstractMongoDbBase {
         long actualCount = events.stream().filter(op -> op.getOperationType() == operationType).count();
         assertEquals(expectedCount, actualCount);
     }
+
+    @Test
+    void givenConfigurationWithSingleOperationType_shouldAcceptOnlyMatchingEvents() throws Exception {
+        var config = MongoConfig.builder()
+                .connectionUri(getConnectionUri())
+                .databaseName(getDatabaseName())
+                .collectionName(getTestCollectionName())
+                .workerConfigCollectionName(getWorkerConfigCollectionName())
+                .clusterConfigCollectionName(getClusterConfigCollectionName())
+                .numberOfPartitions(3)
+                .fullDocument(FullDocument.UPDATE_LOOKUP)
+                .operationTypes(OperationType.INSERT)
+                .build();
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        Thread.sleep(1000);
+
+        Document testDoc = new Document("testValue", 123);
+        InsertOneResult insertResult = collection.insertOne(testDoc);
+        ObjectId docId = insertResult.getInsertedId().asObjectId().getValue();
+
+        collection.updateOne(Filters.eq("_id", docId), Updates.set("testValue", 456));
+        collection.deleteOne(Filters.eq("_id", docId));
+
+        Thread.sleep(500);
+
+        List<ChangeStreamDocument<Document>> events = listener.getEvents();
+        assertEquals(1, events.size());
+        assertEventsContainNumberOfOpTypes(events, OperationType.INSERT, 1);
+    }
+
+    @Test
+    void givenConfigurationWithMultipleOperationTypes_shouldAcceptOnlyMatchingEvents() throws Exception {
+        var config = MongoConfig.builder()
+                .connectionUri(getConnectionUri())
+                .databaseName(getDatabaseName())
+                .collectionName(getTestCollectionName())
+                .workerConfigCollectionName(getWorkerConfigCollectionName())
+                .clusterConfigCollectionName(getClusterConfigCollectionName())
+                .numberOfPartitions(3)
+                .fullDocument(FullDocument.UPDATE_LOOKUP)
+                .operationTypes(OperationType.INSERT, OperationType.DELETE)
+                .build();
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        Thread.sleep(1000);
+
+        Document testDoc = new Document("testValue", 123);
+        InsertOneResult insertResult = collection.insertOne(testDoc);
+        ObjectId docId = insertResult.getInsertedId().asObjectId().getValue();
+
+        collection.updateOne(Filters.eq("_id", docId), Updates.set("testValue", 456));
+
+        collection.deleteOne(Filters.eq("_id", docId));
+
+        List<ChangeStreamDocument<Document>> events = waitForEvents(listener, 2);
+
+        assertEquals(2, events.size());
+        assertEventsContainNumberOfOpTypes(events, OperationType.INSERT, 1);
+        assertEventsContainNumberOfOpTypes(events, OperationType.DELETE, 1);
+        assertEventsContainNumberOfOpTypes(events, OperationType.UPDATE, 0);
+    }
+
+    @Test
+    void givenConfigurationWithNullOperationTypes_shouldAcceptAllEvents() throws Exception {
+        var config = MongoConfig.builder()
+                .connectionUri(getConnectionUri())
+                .databaseName(getDatabaseName())
+                .collectionName(getTestCollectionName())
+                .workerConfigCollectionName(getWorkerConfigCollectionName())
+                .clusterConfigCollectionName(getClusterConfigCollectionName())
+                .numberOfPartitions(3)
+                .fullDocument(FullDocument.UPDATE_LOOKUP)
+                .operationTypes((OperationType[]) null)
+                .build();
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        Thread.sleep(1000);
+
+        Document testDoc = new Document("testValue", 123);
+        InsertOneResult insertResult = collection.insertOne(testDoc);
+        ObjectId docId = insertResult.getInsertedId().asObjectId().getValue();
+
+        collection.updateOne(Filters.eq("_id", docId), Updates.set("testValue", 456));
+        collection.deleteOne(Filters.eq("_id", docId));
+
+        List<ChangeStreamDocument<Document>> events = waitForEvents(listener, 3);
+
+        assertEquals(3, events.size());
+        assertEventsContainNumberOfOpTypes(events, OperationType.INSERT, 1);
+        assertEventsContainNumberOfOpTypes(events, OperationType.UPDATE, 1);
+        assertEventsContainNumberOfOpTypes(events, OperationType.DELETE, 1);
+    }
+
+    @Test
+    void givenConfigurationWithEmptyOperationTypes_shouldAcceptAllEvents() throws Exception {
+        var config = MongoConfig.builder()
+                .connectionUri(getConnectionUri())
+                .databaseName(getDatabaseName())
+                .collectionName(getTestCollectionName())
+                .workerConfigCollectionName(getWorkerConfigCollectionName())
+                .clusterConfigCollectionName(getClusterConfigCollectionName())
+                .numberOfPartitions(3)
+                .fullDocument(FullDocument.UPDATE_LOOKUP)
+                .operationTypes()
+                .build();
+
+        MongoCseManager manager = new MongoCseManager(config);
+        TestChangeStreamListener listener = new TestChangeStreamListener();
+        manager.registerListenerToAllPartitions(listener);
+        manager.start();
+
+        Thread.sleep(1000);
+
+        Document testDoc = new Document("testValue", 123);
+        InsertOneResult insertResult = collection.insertOne(testDoc);
+        ObjectId docId = insertResult.getInsertedId().asObjectId().getValue();
+
+        collection.updateOne(Filters.eq("_id", docId), Updates.set("testValue", 456));
+        collection.deleteOne(Filters.eq("_id", docId));
+
+        List<ChangeStreamDocument<Document>> events = waitForEvents(listener, 3);
+
+        assertEquals(3, events.size());
+        assertEventsContainNumberOfOpTypes(events, OperationType.INSERT, 1);
+        assertEventsContainNumberOfOpTypes(events, OperationType.UPDATE, 1);
+        assertEventsContainNumberOfOpTypes(events, OperationType.DELETE, 1);
+    }
 }

@@ -56,6 +56,7 @@ MongoConfig mongoConfig = MongoConfig.builder()
 		.databaseName("test-db")
 		.collectionName("example")
 		.match(Filters.lt("fullDocument.testValue", 2))
+		.operationTypes(OperationType.INSERT, OperationType.UPDATE)
 		.keyName("_id")
 		.numberOfPartitions(3)
 		.workerConfigCollectionName("changeStreamWorkerConfig")
@@ -90,6 +91,7 @@ manager.start();
 * `databaseName` - name of the database
 * `collectionName` - name of the collection on which change stream listener should be applied
 * `match` - $match pipeline stage to filter change stream events. It can be used for filtering e.g. `fullDocument` or `operationType` event fields. By default, it accepts all events.
+* `operationTypes` - filters change stream events by operation type (e.g. `INSERT`, `UPDATE`, `DELETE`, `REPLACE`). This is a convenience method that adds an `operationType` filter to the `$match` stage. You can pass multiple operation types to listen only to specific types of changes.
 * `keyName` - name of the key that will be used as partitioning key. Default value is `_id`. Key value is required for every document and should be of type ObjectId. Value of the key doesn't have to be unique.
 * `numberOfPartitions` - how many partitions should be used (how many parallel listeners can be run). `keyName` will be used to split data across partitions. Library starts a dedicated worker/thread and opens a separate change stream per each partition. That means events for the same document key always go to the same partition, so ordering is preserved within that partition.
 * `workerConfigCollectionName` - by default set to `changeStreamWorkerConfig`. Collection name in which worker config is stored

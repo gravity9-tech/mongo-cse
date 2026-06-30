@@ -3,7 +3,10 @@ package com.gravity9.mongocse;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
+import com.mongodb.client.model.changestream.OperationType;
 import org.bson.conversions.Bson;
+
+import java.util.Arrays;
 
 public class MongoConfig {
 
@@ -133,6 +136,18 @@ public class MongoConfig {
 
 		public MongoConfigBuilder match(Bson match) {
 			this.match = match;
+			return this;
+		}
+
+		public MongoConfigBuilder operationTypes(OperationType... types) {
+			if (types == null || types.length == 0) {
+				return this;
+			}
+			String[] operationTypeValues = Arrays.stream(types)
+					.map(OperationType::getValue)
+					.toArray(String[]::new);
+			Bson operationTypeFilter = Filters.in("operationType", operationTypeValues);
+			this.match = Filters.and(this.match, operationTypeFilter);
 			return this;
 		}
 
