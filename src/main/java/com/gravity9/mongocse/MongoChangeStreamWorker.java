@@ -102,8 +102,8 @@ class MongoChangeStreamWorker implements Runnable {
                 } while (isReadingFromChangeStream);
             } catch (MongoCommandException ex) {
                 if (ex.hasErrorLabel(NON_RESUMABLE_CHANGE_STREAM_ERROR)) {
-                    log.error("Non-resumable change stream error during processing for partition {} on collection {}. " +
-                                    "Clearing token and restarting.",
+                    log.error("Non-resumable change stream error during processing for partition {} on collection {}. "
+                                    + "Clearing token and restarting.",
                             partition, mongoConfig.getCollectionName(), ex);
                     configManager.clearResumeToken(configId);
                     resumeToken = null;
@@ -207,8 +207,8 @@ class MongoChangeStreamWorker implements Runnable {
 
     private void handleResumeTokenError(MongoCommandException e) {
         if (e.hasErrorLabel(NON_RESUMABLE_CHANGE_STREAM_ERROR)) {
-            log.error("Non-resumable change stream error for partition {} on collection {}. " +
-                            "Likely cause: manual DB changes or oplog pruned. Token cleared, restarting fresh. Invalid token: {}",
+            log.error("Non-resumable change stream error for partition {} on collection {}. "
+                            + "Likely cause: manual DB changes or oplog pruned. Token cleared, restarting fresh. Invalid token: {}",
                     partition, mongoConfig.getCollectionName(), resumeToken, e);
 
             configManager.clearResumeToken(configId);
