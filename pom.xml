@@ -254,7 +254,8 @@
                         <artifactId>dependency-check-maven</artifactId>
                         <version>${dependency-check-maven.version}</version>
                         <configuration>
-                            <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                            <nvdApiKey>592e9995-5e3d-4ac2-89fd-748286af83bf</nvdApiKey>
+                            <dataDirectory>${env.HOME}/.dependency-check-data</dataDirectory>
                             <failBuildOnCVSS>7</failBuildOnCVSS>
                             <suppressionFiles>
                                 <suppressionFile>${basedir}/dependency-check-suppressions.xml</suppressionFile>
@@ -431,4 +432,3 @@
         </plugins>
     </reporting>
 </project>
-

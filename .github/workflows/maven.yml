@@ -54,7 +54,7 @@ jobs:
       - calc_version
     env:
       version: ${{ needs.calc_version.outputs.version }}
-      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      NVD_API_KEY: 592e9995-5e3d-4ac2-89fd-748286af83bf
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 21
