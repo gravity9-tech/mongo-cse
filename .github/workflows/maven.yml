@@ -72,7 +72,7 @@ jobs:
           path: ~/.dependency-check-data
           key: dependency-check-data-v1-${{ github.run_id }}
           restore-keys: |
-            dependency-check-data-v1
+            dependency-check-data-v1-
 
       - name: Build with Maven
         run: mvn -B package -Drevision=${{ env.version }}
