@@ -107,6 +107,7 @@ class MongoChangeStreamWorker implements Runnable {
                             partition, mongoConfig.getCollectionName(), ex);
                     configManager.clearResumeToken(configId);
                     resumeToken = null;
+                    watch = ChangeStreamIterableFactory.createWatch(mongoConfig, collection, partition);
                 } else {
                     log.error("MongoDB command error {} during processing for partition {} on collection {}",
                             ex.getErrorCode(), partition, mongoConfig.getCollectionName(), ex);
