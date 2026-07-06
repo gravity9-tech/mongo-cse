@@ -140,6 +140,12 @@ public class MongoCseManager implements Closeable {
 
     @Override
     public void close() throws IOException {
+        try {
+            stop();
+        } catch (Exception e) {
+            log.error("{} - Error stopping workers during close", managerId, e);
+        } finally {
             clientProvider.close();
+        }
     }
 }
