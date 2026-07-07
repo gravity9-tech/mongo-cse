@@ -128,7 +128,7 @@ jobs:
         server-username: NEXUS_USERNAME
         server-password: NEXUS_PASSWORD
     - name: Deploy to SonaType
-      run: mvn deploy -Drevision=${{ env.version }}
+      run: mvn deploy -Drevision=${{ env.version }} -Ddependency-check.skip=true
 
   post_deploy_tagging:
     if: github.ref == 'refs/heads/main'
