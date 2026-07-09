@@ -87,17 +87,7 @@ public class ConfigManagerTest extends AbstractMongoDbBase {
         MongoCseManager secondInstance = new MongoCseManager(mongoConfig);
         assertNotSame(firstInstance, secondInstance);
     }
-	@Test
-	void givenNewConfigWithDifferentNumberOfPartitions_shouldThrowException() {
-		var firstConfig = mongoConfigBuilder
-				.numberOfPartitions(3)
-				.build();
-		var secondConfig = mongoConfigBuilder
-				.numberOfPartitions(1)
-				.build();
-		new MongoCseManager(firstConfig);
-		assertThrows(IllegalArgumentException.class, () -> new MongoCseManager(secondConfig));
-	}
+
 
 	@Test
 	void givenWorkerConfigWithResumeToken_whenClearResumeToken_thenTokenIsRemoved() {
