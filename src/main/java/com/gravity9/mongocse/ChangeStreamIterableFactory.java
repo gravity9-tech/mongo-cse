@@ -15,6 +15,7 @@ import static com.gravity9.mongocse.MongoExpressions.cond;
 import static com.gravity9.mongocse.MongoExpressions.documentKey;
 import static com.gravity9.mongocse.MongoExpressions.eq;
 import static com.gravity9.mongocse.MongoExpressions.expr;
+import static com.gravity9.mongocse.MongoExpressions.fullDocumentBeforeChangeKey;
 import static com.gravity9.mongocse.MongoExpressions.fullDocumentKey;
 import static com.gravity9.mongocse.MongoExpressions.mod;
 import static com.gravity9.mongocse.MongoExpressions.or;
@@ -32,7 +33,8 @@ class ChangeStreamIterableFactory {
                             mongoConfig.getMatch(),
                             or(List.of(
                               partitionMatchExpression(fullDocumentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition),
-                              partitionMatchExpression(documentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition)
+                              partitionMatchExpression(documentKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition),
+                              partitionMatchExpression(fullDocumentBeforeChangeKey(mongoConfig.getKeyName()), mongoConfig.getNumberOfPartitions(), partition)
                             ))
                           ))
                         )
