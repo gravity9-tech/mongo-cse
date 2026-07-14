@@ -37,6 +37,10 @@ class MongoExpressions {
 		return new BsonString("$documentKey." + keyName);
 	}
 
+	static BsonString fullDocumentBeforeChangeKey(String keyName) {
+		return new BsonString("$fullDocumentBeforeChange." + keyName);
+	}
+
 	static Bson abs(Bson expr) {
 		return new Document("$abs", expr);
 	}
