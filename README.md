@@ -92,7 +92,7 @@ manager.start();
 * `collectionName` - name of the collection on which change stream listener should be applied
 * `match` - $match pipeline stage to filter change stream events. It can be used for filtering e.g. `fullDocument` or `operationType` event fields. By default, it accepts all events.
 * `operationTypes` - filters change stream events by operation type (e.g. `INSERT`, `UPDATE`, `DELETE`, `REPLACE`). This is a convenience method that adds an `operationType` filter to the `$match` stage. You can pass multiple operation types to listen only to specific types of changes.
-* `keyName` - name of the key that will be used as partitioning key. Default value is `_id`. Key value is required for every document and should be of type ObjectId. Value of the key doesn't have to be unique.
+* `keyName` - name of the key that will be used as partitioning key. Default value is `_id`. The key can be of any type (String, Integer, ObjectId, etc.) - not limited to ObjectId. Value of the key doesn't have to be unique. **Important:** If you use a custom key (not `_id`) and want to receive DELETE events, see [Custom Partition Key](#custom-partition-key) section.
 * `numberOfPartitions` - how many partitions should be used (how many parallel listeners can be run). `keyName` will be used to split data across partitions. Library starts a dedicated worker/thread and opens a separate change stream per each partition. That means events for the same document key always go to the same partition, so ordering is preserved within that partition.
 * `workerConfigCollectionName` - by default set to `changeStreamWorkerConfig`. Collection name in which worker config is stored
 * `clusterConfigCollectionName` - by default set to `changeStreamClusterConfig`. collection name in which cluster config is stored
@@ -115,7 +115,72 @@ manager.deregisterListenerFromAllPartitions(listener0);
 manager.deregisterListener(listener0, List.of(0))
 ```
 
-## Cosiderations
+## Custom Partition Key
+
+By default, MCSE uses the `_id` field for partitioning. However, you can use any field as the partition key (e.g., a business key like `customKey`, `customerId`, etc.).
+
+### Why use a custom partition key?
+
+If you want documents with the same business key to always be processed by the same partition (and thus in order), you should use that business key for partitioning instead of `_id`.
+
+For example, if you have orders and want all events for the same `customKey` to be processed sequentially:
+
+```java
+MongoConfig config = MongoConfig.builder()
+    .connectionUri("mongodb://localhost:27017")
+    .databaseName("mydb")
+    .collectionName("orders")
+    .keyName("customKey")  // Use customKey instead of _id
+    .numberOfPartitions(3)
+    .build();
+```
+
+### DELETE events with custom partition key
+
+When using a custom partition key (not `_id`), DELETE events require additional configuration because MongoDB Change Streams don't include the full document in DELETE events by default - only the `_id` is available in `documentKey`.
+
+To receive DELETE events with a custom partition key, you need to:
+
+**1. Enable `changeStreamPreAndPostImages` on your collection:**
+
+```javascript
+// In MongoDB shell (mongosh)
+db.runCommand({
+  collMod: "your_collection_name",
+  changeStreamPreAndPostImages: { enabled: true }
+})
+
+// Or when creating a new collection:
+db.createCollection("your_collection_name", {
+  changeStreamPreAndPostImages: { enabled: true }
+})
+```
+
+**2. Configure `fullDocumentBeforeChange` in MongoConfig:**
+
+```java
+MongoConfig config = MongoConfig.builder()
+    .connectionUri("mongodb://localhost:27017")
+    .databaseName("mydb")
+    .collectionName("orders")
+    .keyName("customKey")
+    .numberOfPartitions(3)
+    .fullDocumentBeforeChange(FullDocumentBeforeChange.WHEN_AVAILABLE)
+    .build();
+```
+
+### Summary: `_id` vs Custom Key
+
+| Feature | `_id` (default) | Custom key (e.g., `customKey`) |
+|---------|-----------------|------------------------------|
+| INSERT events | Works | Works |
+| UPDATE events | Works | Works |
+| DELETE events | Works | Requires `changeStreamPreAndPostImages` |
+| Documents without key | N/A (`_id` always exists) | Silently filtered out |
+
+**Note:** Documents that don't have the specified `keyName` field will be silently filtered out and won't trigger any events.
+
+## Considerations
 
 ### Configs
 
