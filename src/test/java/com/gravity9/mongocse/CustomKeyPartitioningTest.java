@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * - String business keys
  * - Integer business keys
  * - Same key always goes to same partition
- * - Documents without key field are filtered out
+ * - Documents without key field go to partition 0 (default partition)
  * - DELETE operations with custom key (requires changeStreamPreAndPostImages)
  */
 class CustomKeyPartitioningTest extends AbstractMongoDbBase {
@@ -194,7 +194,7 @@ class CustomKeyPartitioningTest extends AbstractMongoDbBase {
     }
 
     @Test
-    void givenDocumentWithoutKeyNameField_shouldBeIgnored() throws Exception {
+    void givenDocumentWithoutKeyNameField_shouldGoToPartitionZero() throws Exception {
         MongoConfig config = MongoConfig.builder()
                 .connectionUri(getConnectionUri())
                 .databaseName(getDatabaseName())
@@ -207,27 +207,28 @@ class CustomKeyPartitioningTest extends AbstractMongoDbBase {
                 .build();
 
         MongoCseManager manager = new MongoCseManager(config);
-        TestChangeStreamListener listener = new TestChangeStreamListener();
-        manager.registerListenerToAllPartitions(listener);
+
+        TestChangeStreamListener listener0 = new TestChangeStreamListener();
+        TestChangeStreamListener listener1 = new TestChangeStreamListener();
+        TestChangeStreamListener listener2 = new TestChangeStreamListener();
+        manager.registerListener(listener0, List.of(0));
+        manager.registerListener(listener1, List.of(1));
+        manager.registerListener(listener2, List.of(2));
         manager.start();
 
         Thread.sleep(1000);
 
-        // Insert document WITH the key field
-        collection.insertOne(new Document(Map.of(STRING_KEY_NAME, "HAS-KEY", "data", "with key")));
-
-        // Insert documents WITHOUT the key field - these should be filtered out
+        // Insert documents WITHOUT the key field - these should go to partition 0
         collection.insertOne(new Document(Map.of("otherField", "value1", "data", "no key 1")));
         collection.insertOne(new Document(Map.of("otherField", "value2", "data", "no key 2")));
         collection.insertOne(new Document(Map.of("differentField", "value3", "data", "no key 3")));
 
         Thread.sleep(1500);
 
-        List<ChangeStreamDocument<Document>> events = listener.getEvents();
-
-        // Only the document WITH the key field should be received
-        assertEquals(1, events.size(), "Only documents with the partition key field should be received");
-        assertEquals("HAS-KEY", events.get(0).getFullDocument().getString(STRING_KEY_NAME));
+        // Documents without the partition key should go to partition 0 (default partition)
+        assertEquals(3, listener0.getEvents().size(), "Documents without partition key should go to partition 0");
+        assertEquals(0, listener1.getEvents().size(), "Partition 1 should not receive documents without key");
+        assertEquals(0, listener2.getEvents().size(), "Partition 2 should not receive documents without key");
 
         manager.stop();
     }

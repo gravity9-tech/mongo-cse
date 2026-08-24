@@ -132,6 +132,8 @@ MongoConfig config = MongoConfig.builder()
     .collectionName("orders")
     .keyName("customKey")  // Use customKey instead of _id
     .numberOfPartitions(3)
+    .fullDocument(FullDocument.UPDATE_LOOKUP)
+    .fullDocumentBeforeChange(FullDocumentBeforeChange.WHEN_AVAILABLE)
     .build();
 ```
 
@@ -156,18 +158,7 @@ db.createCollection("your_collection_name", {
 })
 ```
 
-**2. Configure `fullDocumentBeforeChange` in MongoConfig:**
-
-```java
-MongoConfig config = MongoConfig.builder()
-    .connectionUri("mongodb://localhost:27017")
-    .databaseName("mydb")
-    .collectionName("orders")
-    .keyName("customKey")
-    .numberOfPartitions(3)
-    .fullDocumentBeforeChange(FullDocumentBeforeChange.WHEN_AVAILABLE)
-    .build();
-```
+**2. Configure `fullDocumentBeforeChange` in MongoConfig** (as shown in the example above).
 
 ### Summary: `_id` vs Custom Key
 
@@ -176,9 +167,9 @@ MongoConfig config = MongoConfig.builder()
 | INSERT events | Works | Works |
 | UPDATE events | Works | Works |
 | DELETE events | Works | Requires `changeStreamPreAndPostImages` |
-| Documents without key | N/A (`_id` always exists) | Silently filtered out |
+| Documents without key | N/A (`_id` always exists) | Routed to partition 0 |
 
-**Note:** Documents that don't have the specified `keyName` field will be silently filtered out and won't trigger any events.
+**Note:** Documents that don't have the specified `keyName` field will be routed to partition 0. This ensures no events are silently lost, but be aware that this may cause uneven load distribution if many documents lack the key field.
 
 ## Considerations
 
