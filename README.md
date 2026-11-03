@@ -2,7 +2,7 @@
 
 ## What is MCSE (Mongo Change Stream Enhancer)?
 
-This is a lightweight library that allows Java developers to scale their usage of [MongoDB Change Streams](https://www.mongodb.com/docs/manual/changeStreams/). 
+This is a lightweight library that allows Java developers to scale their usage of [MongoDB Change Streams](https://www.mongodb.com/docs/manual/changeStreams/). It transforms MongoDB's low-level Change Streams API into a reliable, developer-friendly event processing framework. It handles the complexity of resume tokens, connection disruptions, and event listeners, so developers can focus on what matters most: building the business logic that processes events.
 
 Mongo Change Stream Enhancer divides Change Stream events into partitions and enables you to handle them in separate Threads, increasing throughput. It achieves that by creating a Change Stream per each partition (number is configurable) and handling each Change Stream in a dedicated Thread.
 
